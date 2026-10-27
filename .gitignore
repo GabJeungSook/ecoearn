@@ -1,0 +1,13 @@
+# OS / editor
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+
+# Arduino CLI build output (the IDE builds outside the project)
+firmware/**/build/
+
+# Local databases and exported data (real student data stays off git)
+*.db
+*.sqlite
+*.csv
