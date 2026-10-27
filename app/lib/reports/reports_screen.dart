@@ -9,12 +9,24 @@ import '../widgets/stat_card.dart';
 enum _Export { monthlySummary, monthDeposits, allDeposits }
 
 class ReportsScreen extends StatefulWidget {
-  const ReportsScreen({super.key, required this.reports, required this.students});
+  const ReportsScreen({
+    super.key,
+    required this.reports,
+    required this.students,
+    this.subtitle,
+    this.onExportForOfficers,
+  });
 
   final Reports reports;
 
   /// Listened to so the report refreshes when new deposits are saved.
   final StudentRepository students;
+
+  /// Shown under the title, e.g. which data file an officer is viewing.
+  final String? subtitle;
+
+  /// Admin only: adds "Data file for officers" to the export menu.
+  final VoidCallback? onExportForOfficers;
 
   @override
   State<ReportsScreen> createState() => _ReportsScreenState();
@@ -102,7 +114,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final report = _report;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Monthly report'),
+        title: widget.subtitle == null
+            ? const Text('Monthly report')
+            : ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Monthly report'),
+                subtitle: Text(widget.subtitle!),
+              ),
         actions: [
           MenuAnchor(
             builder: (context, controller, _) => FilledButton.icon(
@@ -123,6 +141,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 onPressed: () => _export(_Export.allDeposits),
                 child: const Text('All deposits, all months (test data)'),
               ),
+              if (widget.onExportForOfficers != null) ...[
+                const Divider(),
+                MenuItemButton(
+                  onPressed: widget.onExportForOfficers,
+                  leadingIcon: const Icon(Icons.save_alt),
+                  child: const Text('Data file for officers (.ecoearn)'),
+                ),
+              ],
             ],
           ),
           const SizedBox(width: 16),

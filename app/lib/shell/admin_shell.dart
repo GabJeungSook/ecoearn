@@ -1,0 +1,121 @@
+import 'package:file_selector/file_selector.dart';
+import 'package:flutter/material.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+import '../auth/accounts_screen.dart';
+import '../auth/auth_service.dart';
+import '../data/deposit_recorder.dart';
+import '../data/officer_data.dart';
+import '../data/reports.dart';
+import '../data/student_repository.dart';
+import '../live/live_screen.dart';
+import '../live/live_session.dart';
+import '../reports/reports_screen.dart';
+import '../serial/serial_connection.dart';
+import '../students/students_screen.dart';
+import 'rail_footer.dart';
+
+/// Everything: Live, Students, Reports, Accounts.
+class AdminShell extends StatefulWidget {
+  const AdminShell({
+    super.key,
+    required this.auth,
+    required this.db,
+    required this.databasePath,
+    required this.connection,
+    required this.session,
+    required this.students,
+    required this.recorder,
+    required this.reports,
+  });
+
+  final AuthService auth;
+  final Database db;
+  final String databasePath;
+  final SerialConnection connection;
+  final LiveSession session;
+  final StudentRepository students;
+  final DepositRecorder recorder;
+  final Reports reports;
+
+  @override
+  State<AdminShell> createState() => _AdminShellState();
+}
+
+class _AdminShellState extends State<AdminShell> {
+  int _screen = 0;
+
+  Future<void> _exportForOfficers() async {
+    final now = DateTime.now();
+    final date = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final location = await getSaveLocation(
+      suggestedName: 'ecoearn-data-$date.${OfficerDataFile.extension}',
+      acceptedTypeGroups: const [
+        XTypeGroup(label: 'EcoEarn data file', extensions: [OfficerDataFile.extension]),
+      ],
+    );
+    if (location == null) return;
+
+    var path = location.path;
+    if (!path.toLowerCase().endsWith('.${OfficerDataFile.extension}')) path = '$path.${OfficerDataFile.extension}';
+
+    String message;
+    try {
+      await OfficerDataFile.export(widget.db, path);
+      message = 'Saved $path. Copy it to the SD card or flash drive for the officers.';
+    } catch (e) {
+      message = 'Could not save the data file: $e';
+    }
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FullScreenShortcut(
+      child: Scaffold(
+        body: Row(
+          children: [
+            NavigationRail(
+              selectedIndex: _screen,
+              onDestinationSelected: (i) => setState(() => _screen = i),
+              labelType: NavigationRailLabelType.all,
+              destinations: const [
+                NavigationRailDestination(icon: Icon(Icons.sensors), label: Text('Live')),
+                NavigationRailDestination(icon: Icon(Icons.people_outline), label: Text('Students')),
+                NavigationRailDestination(icon: Icon(Icons.bar_chart), label: Text('Reports')),
+                NavigationRailDestination(icon: Icon(Icons.manage_accounts_outlined), label: Text('Accounts')),
+              ],
+              trailing: RailFooter(auth: widget.auth),
+            ),
+            const VerticalDivider(width: 1),
+            Expanded(
+              // IndexedStack keeps each screen's state (port list, search) when switching.
+              child: IndexedStack(
+                index: _screen,
+                children: [
+                  LiveScreen(
+                    connection: widget.connection,
+                    session: widget.session,
+                    students: widget.students,
+                    recorder: widget.recorder,
+                  ),
+                  StudentsScreen(
+                    students: widget.students,
+                    connection: widget.connection,
+                    footer: 'Database: ${widget.databasePath}',
+                  ),
+                  ReportsScreen(
+                    reports: widget.reports,
+                    students: widget.students,
+                    onExportForOfficers: _exportForOfficers,
+                  ),
+                  AccountsScreen(auth: widget.auth),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

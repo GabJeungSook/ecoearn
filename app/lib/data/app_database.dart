@@ -5,7 +5,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 /// Opens the app's SQLite database and creates or upgrades its tables.
 class AppDatabase {
   static const fileName = 'ecoearn.db';
-  static const _version = 1;
+  static const _version = 2;
 
   /// %APPDATA%\com.ecoearn\ecoearn_app\ecoearn.db
   static Future<String> defaultPath() async =>
@@ -52,6 +52,18 @@ class AppDatabase {
         )''');
       await db.execute('CREATE INDEX deposits_student ON deposits(student_id)');
       await db.execute('CREATE INDEX deposits_occurred ON deposits(occurred_at)');
+    }
+    if (from < 2) {
+      // Login accounts. Never included in the data file exported for officers.
+      await db.execute('''
+        CREATE TABLE accounts (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          username      TEXT NOT NULL UNIQUE,
+          display_name  TEXT NOT NULL,
+          role          TEXT NOT NULL,
+          password_hash TEXT NOT NULL,
+          created_at    TEXT NOT NULL
+        )''');
     }
   }
 }

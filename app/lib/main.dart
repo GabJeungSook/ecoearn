@@ -1,23 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:window_manager/window_manager.dart';
 
+import 'auth/account.dart';
+import 'auth/auth_service.dart';
+import 'auth/login_screen.dart';
 import 'data/app_database.dart';
 import 'data/deposit_recorder.dart';
+import 'data/officer_data.dart';
 import 'data/reports.dart';
 import 'data/student_repository.dart';
-import 'live/live_screen.dart';
 import 'live/live_session.dart';
-import 'reports/reports_screen.dart';
 import 'serial/serial_connection.dart';
-import 'students/students_screen.dart';
+import 'shell/admin_shell.dart';
+import 'shell/display_kiosk.dart';
+import 'shell/officer_shell.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
+  await windowManager.setTitle('EcoEarn');
+  await windowManager.setMinimumSize(const Size(1100, 700));
+  await windowManager.maximize();
+
   final databasePath = await AppDatabase.defaultPath();
   final db = await AppDatabase.open(databasePath);
   final students = StudentRepository(db);
   await students.load();
-  runApp(EcoEarnApp(db: db, databasePath: databasePath, students: students));
+  final auth = AuthService(db);
+  await auth.load();
+  final officerData = OfficerData(p.dirname(databasePath));
+  await officerData.open();
+
+  runApp(EcoEarnApp(
+    db: db,
+    databasePath: databasePath,
+    students: students,
+    auth: auth,
+    officerData: officerData,
+  ));
 }
 
 class EcoEarnApp extends StatefulWidget {
@@ -26,17 +48,23 @@ class EcoEarnApp extends StatefulWidget {
     required this.db,
     required this.databasePath,
     required this.students,
+    required this.auth,
+    required this.officerData,
   });
 
   final Database db;
   final String databasePath;
   final StudentRepository students;
+  final AuthService auth;
+  final OfficerData officerData;
 
   @override
   State<EcoEarnApp> createState() => _EcoEarnAppState();
 }
 
 class _EcoEarnAppState extends State<EcoEarnApp> {
+  // The serial link and deposit recording run whoever is signed in (even on
+  // the sign-in screen), so the machine never stops saving bottles.
   final _connection = SerialConnection();
   late final _session = LiveSession(_connection);
   late final _recorder = DepositRecorder(
@@ -45,13 +73,14 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
     events: _connection.events,
   );
   late final _reports = Reports(widget.db);
-  int _screen = 0;
 
   @override
   void dispose() {
     _recorder.dispose();
     _session.dispose();
     _connection.dispose();
+    widget.officerData.dispose();
+    widget.auth.dispose();
     widget.students.dispose();
     widget.db.close();
     super.dispose();
@@ -63,42 +92,33 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
       title: 'EcoEarn',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(colorSchemeSeed: Colors.green),
-      home: Scaffold(
-        body: Row(
-          children: [
-            NavigationRail(
-              selectedIndex: _screen,
-              onDestinationSelected: (i) => setState(() => _screen = i),
-              labelType: NavigationRailLabelType.all,
-              destinations: const [
-                NavigationRailDestination(icon: Icon(Icons.sensors), label: Text('Live')),
-                NavigationRailDestination(icon: Icon(Icons.people_outline), label: Text('Students')),
-                NavigationRailDestination(icon: Icon(Icons.bar_chart), label: Text('Reports')),
-              ],
+      home: ListenableBuilder(
+        listenable: widget.auth,
+        builder: (context, _) => switch (widget.auth.current?.role) {
+          null => LoginScreen(auth: widget.auth),
+          Role.admin => AdminShell(
+              auth: widget.auth,
+              db: widget.db,
+              databasePath: widget.databasePath,
+              connection: _connection,
+              session: _session,
+              students: widget.students,
+              recorder: _recorder,
+              reports: _reports,
             ),
-            const VerticalDivider(width: 1),
-            Expanded(
-              // IndexedStack keeps each screen's state (port list, search) when switching.
-              child: IndexedStack(
-                index: _screen,
-                children: [
-                  LiveScreen(
-                    connection: _connection,
-                    session: _session,
-                    students: widget.students,
-                    recorder: _recorder,
-                  ),
-                  StudentsScreen(
-                    students: widget.students,
-                    connection: _connection,
-                    databasePath: widget.databasePath,
-                  ),
-                  ReportsScreen(reports: _reports, students: widget.students),
-                ],
-              ),
+          Role.display => DisplayKiosk(
+              auth: widget.auth,
+              connection: _connection,
+              session: _session,
+              students: widget.students,
+              recorder: _recorder,
             ),
-          ],
-        ),
+          Role.officer => OfficerShell(
+              auth: widget.auth,
+              data: widget.officerData,
+              connection: _connection,
+            ),
+        },
       ),
     );
   }

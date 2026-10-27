@@ -10,12 +10,18 @@ class StudentsScreen extends StatefulWidget {
     super.key,
     required this.students,
     required this.connection,
-    required this.databasePath,
+    required this.footer,
+    this.readOnly = false,
   });
 
   final StudentRepository students;
   final SerialConnection connection;
-  final String databasePath;
+
+  /// Shown after the student count, e.g. where the data comes from.
+  final String footer;
+
+  /// Officers can look but not add, edit or delete.
+  final bool readOnly;
 
   @override
   State<StudentsScreen> createState() => _StudentsScreenState();
@@ -68,11 +74,12 @@ class _StudentsScreenState extends State<StudentsScreen> {
       appBar: AppBar(
         title: const Text('Students'),
         actions: [
-          FilledButton.icon(
-            onPressed: () => _edit(null),
-            icon: const Icon(Icons.person_add),
-            label: const Text('Add student'),
-          ),
+          if (!widget.readOnly)
+            FilledButton.icon(
+              onPressed: () => _edit(null),
+              icon: const Icon(Icons.person_add),
+              label: const Text('Add student'),
+            ),
           const SizedBox(width: 16),
         ],
       ),
@@ -101,7 +108,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                     child: shown.isEmpty
                         ? Center(
                             child: Text(all.isEmpty
-                                ? 'No students yet. Click "Add student" to register one.'
+                                ? (widget.readOnly ? 'No students in this data.' : 'No students yet. Click "Add student" to register one.')
                                 : 'No students match "$_query".'),
                           )
                         : ListView.separated(
@@ -113,7 +120,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${all.length} students · Database: ${widget.databasePath}',
+                  '${all.length} students · ${widget.footer}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -127,7 +134,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
   Widget _row(BuildContext context, Student s) {
     final colors = Theme.of(context).colorScheme;
     return ListTile(
-      onTap: () => _edit(s),
+      onTap: widget.readOnly ? null : () => _edit(s),
       leading: CircleAvatar(child: Text(s.name.characters.first.toUpperCase())),
       title: Text(s.name),
       subtitle: Text([s.studentNo, if (s.gradeSection.isNotEmpty) s.gradeSection].join(' · ')),
@@ -144,9 +151,11 @@ class _StudentsScreenState extends State<StudentsScreen> {
             child: Text('${s.points} pts',
                 textAlign: TextAlign.end, style: Theme.of(context).textTheme.titleMedium),
           ),
-          const SizedBox(width: 8),
-          IconButton(tooltip: 'Edit', onPressed: () => _edit(s), icon: const Icon(Icons.edit_outlined)),
-          IconButton(tooltip: 'Delete', onPressed: () => _delete(s), icon: const Icon(Icons.delete_outline)),
+          if (!widget.readOnly) ...[
+            const SizedBox(width: 8),
+            IconButton(tooltip: 'Edit', onPressed: () => _edit(s), icon: const Icon(Icons.edit_outlined)),
+            IconButton(tooltip: 'Delete', onPressed: () => _delete(s), icon: const Icon(Icons.delete_outline)),
+          ],
         ],
       ),
     );

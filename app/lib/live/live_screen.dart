@@ -50,12 +50,16 @@ class LiveScreen extends StatefulWidget {
     required this.session,
     required this.students,
     required this.recorder,
+    this.kiosk = false,
   });
 
   final SerialConnection connection;
   final LiveSession session;
   final StudentRepository students;
   final DepositRecorder recorder;
+
+  /// Display account: no app bar or port controls (the kiosk connects by itself).
+  final bool kiosk;
 
   @override
   State<LiveScreen> createState() => _LiveScreenState();
@@ -90,7 +94,7 @@ class _LiveScreenState extends State<LiveScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: widget.kiosk ? null : AppBar(
         title: const Text('EcoEarn — Live'),
         actions: [
           TextButton.icon(
@@ -108,8 +112,10 @@ class _LiveScreenState extends State<LiveScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _connectionBar(context),
-              const SizedBox(height: 16),
+              if (!widget.kiosk) ...[
+                _connectionBar(context),
+                const SizedBox(height: 16),
+              ],
               _statusCards(context),
               const SizedBox(height: 16),
               Text('Event log', style: Theme.of(context).textTheme.titleMedium),
