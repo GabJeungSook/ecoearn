@@ -4,6 +4,7 @@ import '../data/deposit_recorder.dart';
 import '../data/student_repository.dart';
 import '../serial/device_event.dart';
 import '../serial/serial_connection.dart';
+import '../widgets/stat_card.dart';
 import 'live_session.dart';
 
 const _rejectLabels = {
@@ -193,7 +194,7 @@ class _LiveScreenState extends State<LiveScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _StatCard(
+        StatCard(
           icon: Icons.contactless,
           label: 'Current student',
           value: processingUid == null
@@ -202,8 +203,8 @@ class _LiveScreenState extends State<LiveScreen> {
           detail: processingUid == null ? 'Waiting for a card tap' : '$processingUid · Processing bottle…',
           valueColor: processingUid != null && widget.students.byUid(processingUid) == null ? colors.error : null,
         ),
-        _StatCard(icon: Icons.scale, label: 'Last bottle', value: lastTitle, detail: lastSubtitle),
-        _StatCard(
+        StatCard(icon: Icons.scale, label: 'Last bottle', value: lastTitle, detail: lastSubtitle),
+        StatCard(
           icon: Icons.delete_outline,
           label: 'Bin level',
           value: binLevel == null ? '—' : '$binLevel%',
@@ -211,7 +212,7 @@ class _LiveScreenState extends State<LiveScreen> {
           valueColor: binFull ? colors.error : null,
           progress: binLevel == null ? null : binLevel / 100,
         ),
-        _StatCard(
+        StatCard(
           icon: Icons.eco,
           label: 'This session',
           value: '${session.points} pts',
@@ -251,50 +252,3 @@ class _LiveScreenState extends State<LiveScreen> {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.detail,
-    this.valueColor,
-    this.progress,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final String detail;
-  final Color? valueColor;
-  final double? progress;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Expanded(
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
-                Icon(icon, size: 18),
-                const SizedBox(width: 6),
-                Text(label, style: text.labelLarge),
-              ]),
-              const SizedBox(height: 8),
-              Text(value, style: text.headlineSmall?.copyWith(color: valueColor)),
-              if (progress != null) ...[
-                const SizedBox(height: 6),
-                LinearProgressIndicator(value: progress, color: valueColor),
-              ],
-              const SizedBox(height: 4),
-              Text(detail, style: text.bodySmall),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

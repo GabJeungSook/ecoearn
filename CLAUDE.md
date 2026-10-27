@@ -62,8 +62,10 @@ Safety: nothing moves with lid open; timeout on every motion; manual switch goes
 ESP32 input (never directly to the relay).
 
 ## Hardware status
-In hand: ESP32 (Type-C, 30-pin, likely CH340 USB chip), MFRC522 RFID reader + tag,
-load cell + HX711, breadboard, 20 cm jumper wires, Arduino Uno clone (NOT used).
+In hand (confirmed from photos 2026-10-27): ESP32 (Type-C, 30-pin, CH340 USB chip),
+MFRC522 RFID reader + blue key-fob tag, bar load cell (rating not yet checked) + HX711,
+830-point breadboard, 20 cm jumper wires, Arduino Uno clone (NOT used).
+NOT in hand: microSD card module, DS3231 RTC (both needed for the offline SD log).
 
 Needs soldering by the group before use:
 - MFRC522 8-pin header (SDA, SCK, MOSI, MISO, IRQ, GND, RST, 3.3V)
@@ -121,8 +123,12 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
          needs a laptop→ESP32 "register mode" command.
        - SD import will duplicate live deposits unless the ESP32 sends a persistent
          transaction id (add with SD/RTC work).
-4c. [ ] Fine deductions (needs eligible fines + points-to-peso rate from the group),
-       monthly report export, test-data CSV export
+4c. [x] Reports screen (app/lib/reports): monthly per-student totals + CSV exports
+       (monthly report, month's deposits, all deposits = Chapter IV test data).
+       CSV is UTF-8 with BOM so Excel shows ñ correctly.
+4d. [ ] Login + roles: admin (everything), display (kiosk fullscreen Live, admin
+       password to exit), officers (view data; data source depends on SD module).
+4e. [ ] Fine deductions (needs eligible fines + points-to-peso rate from the group)
 5. [ ] After soldering: wire + test MFRC522, then HX711 (calibrate with known weights)
 6. [ ] Replace fake events with real sensor readings
 7. [ ] SD logging + RTC, LCD, then mechanism (actuator, servos, IR, lid switch)

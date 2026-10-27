@@ -3,9 +3,11 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'data/app_database.dart';
 import 'data/deposit_recorder.dart';
+import 'data/reports.dart';
 import 'data/student_repository.dart';
 import 'live/live_screen.dart';
 import 'live/live_session.dart';
+import 'reports/reports_screen.dart';
 import 'serial/serial_connection.dart';
 import 'students/students_screen.dart';
 
@@ -42,6 +44,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
     students: widget.students,
     events: _connection.events,
   );
+  late final _reports = Reports(widget.db);
   int _screen = 0;
 
   @override
@@ -70,6 +73,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
               destinations: const [
                 NavigationRailDestination(icon: Icon(Icons.sensors), label: Text('Live')),
                 NavigationRailDestination(icon: Icon(Icons.people_outline), label: Text('Students')),
+                NavigationRailDestination(icon: Icon(Icons.bar_chart), label: Text('Reports')),
               ],
             ),
             const VerticalDivider(width: 1),
@@ -89,6 +93,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
                     connection: _connection,
                     databasePath: widget.databasePath,
                   ),
+                  ReportsScreen(reports: _reports, students: widget.students),
                 ],
               ),
             ),
