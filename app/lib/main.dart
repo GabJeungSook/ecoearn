@@ -16,6 +16,8 @@ import 'serial/serial_connection.dart';
 import 'shell/admin_shell.dart';
 import 'shell/display_kiosk.dart';
 import 'shell/officer_shell.dart';
+import 'sound/card_beeper.dart';
+import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -66,16 +68,24 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
   // The serial link and deposit recording run whoever is signed in (even on
   // the sign-in screen), so the machine never stops saving bottles.
   final _connection = SerialConnection();
-  late final _session = LiveSession(_connection);
+  late final _session = LiveSession(_connection.events);
   late final _recorder = DepositRecorder(
     db: widget.db,
     students: widget.students,
     events: _connection.events,
   );
   late final _reports = Reports(widget.db);
+  late final _beeper = CardBeeper(_connection.events);
+
+  @override
+  void initState() {
+    super.initState();
+    _beeper; // start listening for card taps right away
+  }
 
   @override
   void dispose() {
+    _beeper.dispose();
     _recorder.dispose();
     _session.dispose();
     _connection.dispose();
@@ -91,7 +101,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
     return MaterialApp(
       title: 'EcoEarn',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(colorSchemeSeed: Colors.green),
+      theme: buildAppTheme(),
       home: ListenableBuilder(
         listenable: widget.auth,
         builder: (context, _) => switch (widget.auth.current?.role) {
@@ -111,7 +121,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
               connection: _connection,
               session: _session,
               students: widget.students,
-              recorder: _recorder,
+              reports: _reports,
             ),
           Role.officer => OfficerShell(
               auth: widget.auth,

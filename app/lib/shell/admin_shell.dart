@@ -13,6 +13,7 @@ import '../live/live_session.dart';
 import '../reports/reports_screen.dart';
 import '../serial/serial_connection.dart';
 import '../students/students_screen.dart';
+import 'app_sidebar.dart';
 import 'rail_footer.dart';
 
 /// Everything: Live, Students, Reports, Accounts.
@@ -75,19 +76,17 @@ class _AdminShellState extends State<AdminShell> {
       child: Scaffold(
         body: Row(
           children: [
-            NavigationRail(
+            AppSidebar(
+              auth: widget.auth,
               selectedIndex: _screen,
               onDestinationSelected: (i) => setState(() => _screen = i),
-              labelType: NavigationRailLabelType.all,
               destinations: const [
                 NavigationRailDestination(icon: Icon(Icons.sensors), label: Text('Live')),
                 NavigationRailDestination(icon: Icon(Icons.people_outline), label: Text('Students')),
-                NavigationRailDestination(icon: Icon(Icons.bar_chart), label: Text('Reports')),
+                NavigationRailDestination(icon: Icon(Icons.bar_chart_rounded), label: Text('Reports')),
                 NavigationRailDestination(icon: Icon(Icons.manage_accounts_outlined), label: Text('Accounts')),
               ],
-              trailing: RailFooter(auth: widget.auth),
             ),
-            const VerticalDivider(width: 1),
             Expanded(
               // IndexedStack keeps each screen's state (port list, search) when switching.
               child: IndexedStack(

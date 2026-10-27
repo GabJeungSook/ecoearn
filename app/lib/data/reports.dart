@@ -79,7 +79,18 @@ class Reports {
 
   final Database _db;
 
-  Future<MonthlyReport> monthly(int year, int month) async {
+  Future<MonthlyReport> monthly(int year, int month) async =>
+      MonthlyReport(year, month, await _totals(_monthStart(year, month), _nextMonthStart(year, month)));
+
+  /// Per-student totals for one calendar day, highest points first.
+  Future<List<MonthlyRow>> day(DateTime day) {
+    String date(DateTime d) =>
+        '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    return _totals(date(day), date(DateTime(day.year, day.month, day.day + 1)));
+  }
+
+  /// Totals per student (or unregistered card) for deposits in [from, to).
+  Future<List<MonthlyRow>> _totals(String from, String to) async {
     final rows = await _db.rawQuery('''
       SELECT s.student_no, s.name, s.grade_section, MIN(d.rfid_uid) AS rfid_uid,
              SUM(d.reject_reason IS NULL) AS bottles,
@@ -90,9 +101,9 @@ class Reports {
       WHERE d.occurred_at >= ? AND d.occurred_at < ?
       GROUP BY COALESCE('student:' || s.id, 'card:' || d.rfid_uid)
       ORDER BY points DESC, s.name COLLATE NOCASE''',
-        [_monthStart(year, month), _nextMonthStart(year, month)]);
+        [from, to]);
 
-    return MonthlyReport(year, month, [
+    return [
       for (final r in rows)
         MonthlyRow(
           studentNo: r['student_no'] as String?,
@@ -104,7 +115,7 @@ class Reports {
           points: r['points'] as int,
           rejected: r['rejected'] as int,
         ),
-    ]);
+    ];
   }
 
   /// Every deposit, oldest first. Pass [year] and [month] for just that month.

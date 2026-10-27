@@ -6,6 +6,9 @@ import '../data/officer_data.dart';
 import '../serial/serial_connection.dart';
 import '../reports/reports_screen.dart';
 import '../students/students_screen.dart';
+import '../widgets/stat_card.dart';
+import '../theme/app_theme.dart';
+import 'app_sidebar.dart';
 import 'rail_footer.dart';
 
 /// Read-only view of a data file the admin exported.
@@ -58,25 +61,22 @@ class _OfficerShellState extends State<OfficerShell> {
           return Scaffold(
             body: Row(
               children: [
-                NavigationRail(
+                AppSidebar(
+                  auth: widget.auth,
                   selectedIndex: _screen,
                   onDestinationSelected: data.hasData ? (i) => setState(() => _screen = i) : null,
-                  labelType: NavigationRailLabelType.all,
-                  leading: Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: FloatingActionButton(
-                      tooltip: 'Import data file',
-                      onPressed: _import,
-                      child: const Icon(Icons.file_open_outlined),
-                    ),
+                  action: FloatingActionButton.small(
+                    tooltip: 'Import data file',
+                    backgroundColor: EcoColors.mint,
+                    foregroundColor: EcoColors.deepForest,
+                    onPressed: _import,
+                    child: const Icon(Icons.file_open_outlined),
                   ),
                   destinations: const [
-                    NavigationRailDestination(icon: Icon(Icons.bar_chart), label: Text('Reports')),
+                    NavigationRailDestination(icon: Icon(Icons.bar_chart_rounded), label: Text('Reports')),
                     NavigationRailDestination(icon: Icon(Icons.people_outline), label: Text('Students')),
                   ],
-                  trailing: RailFooter(auth: widget.auth),
                 ),
-                const VerticalDivider(width: 1),
                 Expanded(
                   child: students == null || reports == null
                       ? _noData(context)
@@ -107,7 +107,7 @@ class _OfficerShellState extends State<OfficerShell> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.folder_open_outlined, size: 64),
+            const IconBadge(icon: Icons.folder_open_outlined, color: EcoColors.emerald, size: 88),
             const SizedBox(height: 16),
             Text('No data imported yet', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),

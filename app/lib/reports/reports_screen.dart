@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../data/csv_export.dart';
 import '../data/reports.dart';
 import '../data/student_repository.dart';
+import '../theme/app_theme.dart';
 import '../widgets/stat_card.dart';
 
 enum _Export { monthlySummary, monthDeposits, allDeposits }
@@ -189,24 +190,28 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 children: [
                   StatCard(
                     icon: Icons.recycling,
+                    highlight: true,
                     label: 'Bottles collected',
                     value: '${report.bottles}',
                     detail: '${report.rejected} rejected',
                   ),
                   StatCard(
                     icon: Icons.scale,
+                    color: EcoColors.sky,
                     label: 'Plastic collected',
                     value: '${(report.grams / 1000).toStringAsFixed(2)} kg',
                     detail: '${report.grams.toStringAsFixed(0)} g after draining',
                   ),
                   StatCard(
                     icon: Icons.eco,
+                    color: EcoColors.amber,
                     label: 'Points awarded',
                     value: '${report.points}',
                     detail: 'this month',
                   ),
                   StatCard(
                     icon: Icons.people_outline,
+                    color: EcoColors.teal,
                     label: 'Participating students',
                     value: '${report.students}',
                     detail: 'with at least one deposit',

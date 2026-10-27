@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../auth/auth_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/brand.dart';
 
 Future<void> toggleFullScreen() async =>
     windowManager.setFullScreen(!await windowManager.isFullScreen());
@@ -29,6 +31,7 @@ class RailFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final account = auth.current;
+    const faded = Color(0xB3FFFFFF);
     return Expanded(
       child: Align(
         alignment: Alignment.bottomCenter,
@@ -40,10 +43,11 @@ class RailFooter extends StatelessWidget {
               const IconButton(
                 tooltip: 'Full screen (F11)',
                 onPressed: toggleFullScreen,
-                icon: Icon(Icons.fullscreen),
+                icon: Icon(Icons.fullscreen, color: faded),
               ),
-              const SizedBox(height: 8),
-              const Icon(Icons.account_circle_outlined),
+              const SizedBox(height: 12),
+              InitialsAvatar(name: account?.displayName ?? '?', size: 38, color: EcoColors.teal),
+              const SizedBox(height: 6),
               SizedBox(
                 width: 80,
                 child: Text(
@@ -51,11 +55,15 @@ class RailFooter extends StatelessWidget {
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelSmall,
+                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
-              Text(account?.role.label ?? '', style: Theme.of(context).textTheme.labelSmall),
-              IconButton(tooltip: 'Sign out', onPressed: auth.logout, icon: const Icon(Icons.logout)),
+              Text(account?.role.label ?? '', style: const TextStyle(color: faded, fontSize: 11)),
+              IconButton(
+                tooltip: 'Sign out',
+                onPressed: auth.logout,
+                icon: const Icon(Icons.logout, color: faded),
+              ),
             ],
           ),
         ),

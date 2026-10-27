@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/student.dart';
 import '../data/student_repository.dart';
 import '../serial/serial_connection.dart';
+import '../widgets/brand.dart';
 import 'student_dialog.dart';
 
 class StudentsScreen extends StatefulWidget {
@@ -135,8 +136,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
     final colors = Theme.of(context).colorScheme;
     return ListTile(
       onTap: widget.readOnly ? null : () => _edit(s),
-      leading: CircleAvatar(child: Text(s.name.characters.first.toUpperCase())),
-      title: Text(s.name),
+      leading: InitialsAvatar(name: s.name),
+      title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text([s.studentNo, if (s.gradeSection.isNotEmpty) s.gradeSection].join(' · ')),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,

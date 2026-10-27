@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../serial/device_event.dart';
-import '../serial/serial_connection.dart';
 
 /// Keep in sync with BIN_FULL_PERCENT in firmware/ecoearn/config.h.
 const binFullPercent = 90;
@@ -11,8 +10,8 @@ const binFullPercent = 90;
 /// What the live screen shows: the latest machine state and running totals
 /// since the app was opened. Nothing here is saved yet.
 class LiveSession extends ChangeNotifier {
-  LiveSession(SerialConnection connection) {
-    _subscription = connection.events.listen(_onEvent);
+  LiveSession(Stream<DeviceEvent> events) {
+    _subscription = events.listen(_onEvent);
   }
 
   static const maxLogEntries = 300;

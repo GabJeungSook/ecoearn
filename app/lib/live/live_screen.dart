@@ -4,6 +4,7 @@ import '../data/deposit_recorder.dart';
 import '../data/student_repository.dart';
 import '../serial/device_event.dart';
 import '../serial/serial_connection.dart';
+import '../theme/app_theme.dart';
 import '../widgets/stat_card.dart';
 import 'live_session.dart';
 
@@ -43,6 +44,15 @@ IconData _icon(DeviceEvent event) => switch (event) {
       UnknownEvent() => Icons.help_outline,
     };
 
+Color _eventColor(DeviceEvent event) => switch (event) {
+      BootEvent() => EcoColors.muted,
+      CardEvent() => EcoColors.sky,
+      WeightEvent() => EcoColors.emerald,
+      RejectEvent() => EcoColors.coral,
+      BinEvent() => EcoColors.amber,
+      UnknownEvent() => EcoColors.muted,
+    };
+
 class LiveScreen extends StatefulWidget {
   const LiveScreen({
     super.key,
@@ -50,16 +60,12 @@ class LiveScreen extends StatefulWidget {
     required this.session,
     required this.students,
     required this.recorder,
-    this.kiosk = false,
   });
 
   final SerialConnection connection;
   final LiveSession session;
   final StudentRepository students;
   final DepositRecorder recorder;
-
-  /// Display account: no app bar or port controls (the kiosk connects by itself).
-  final bool kiosk;
 
   @override
   State<LiveScreen> createState() => _LiveScreenState();
@@ -81,7 +87,12 @@ class _LiveScreenState extends State<LiveScreen> {
   }
 
   void _refreshPorts() {
-    final ports = SerialConnection.listPorts();
+    List<PortInfo> ports;
+    try {
+      ports = SerialConnection.listPorts();
+    } catch (e) {
+      ports = const []; // serial library unavailable; the dropdown shows "No ports found"
+    }
     setState(() {
       _ports = ports;
       if (!ports.any((p) => p.name == _selectedPort)) {
@@ -94,7 +105,7 @@ class _LiveScreenState extends State<LiveScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: widget.kiosk ? null : AppBar(
+      appBar: AppBar(
         title: const Text('EcoEarn — Live'),
         actions: [
           TextButton.icon(
@@ -112,10 +123,8 @@ class _LiveScreenState extends State<LiveScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (!widget.kiosk) ...[
-                _connectionBar(context),
-                const SizedBox(height: 16),
-              ],
+              _connectionBar(context),
+              const SizedBox(height: 16),
               _statusCards(context),
               const SizedBox(height: 16),
               Text('Event log', style: Theme.of(context).textTheme.titleMedium),
@@ -207,19 +216,29 @@ class _LiveScreenState extends State<LiveScreen> {
               ? '—'
               : widget.students.byUid(processingUid)?.name ?? 'Unregistered card',
           detail: processingUid == null ? 'Waiting for a card tap' : '$processingUid · Processing bottle…',
-          valueColor: processingUid != null && widget.students.byUid(processingUid) == null ? colors.error : null,
+          valueColor: processingUid != null && widget.students.byUid(processingUid) == null ? EcoColors.amber : null,
+          highlight: true,
         ),
-        StatCard(icon: Icons.scale, label: 'Last bottle', value: lastTitle, detail: lastSubtitle),
+        StatCard(
+          icon: Icons.scale,
+          label: 'Last bottle',
+          value: lastTitle,
+          detail: lastSubtitle,
+          color: EcoColors.sky,
+          valueColor: session.lastResult is RejectEvent ? colors.error : null,
+        ),
         StatCard(
           icon: Icons.delete_outline,
           label: 'Bin level',
           value: binLevel == null ? '—' : '$binLevel%',
           detail: binFull ? 'Full — please empty' : 'OK',
+          color: EcoColors.amber,
           valueColor: binFull ? colors.error : null,
           progress: binLevel == null ? null : binLevel / 100,
         ),
         StatCard(
           icon: Icons.eco,
+          color: EcoColors.teal,
           label: 'This session',
           value: '${session.points} pts',
           detail: '${session.bottles} bottles · ${session.rejects} rejected',
@@ -247,10 +266,9 @@ class _LiveScreenState extends State<LiveScreen> {
         itemBuilder: (context, i) {
           final event = log[i];
           return ListTile(
-            dense: true,
-            leading: Icon(_icon(event), color: event is RejectEvent ? Theme.of(context).colorScheme.error : null),
-            title: Text(describeEvent(event, _who)),
-            trailing: Text(_time(event.receivedAt)),
+            leading: IconBadge(icon: _icon(event), color: _eventColor(event), size: 36),
+            title: Text(describeEvent(event, _who), style: const TextStyle(fontWeight: FontWeight.w500)),
+            trailing: Text(_time(event.receivedAt), style: const TextStyle(color: EcoColors.muted)),
           );
         },
       ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+import '../widgets/brand.dart';
 import 'account.dart';
 import 'auth_service.dart';
 
@@ -20,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _confirm = TextEditingController();
   String? _error;
   bool _busy = false;
+  bool _showPassword = false;
 
   bool get _setup => !widget.auth.hasAccounts;
 
@@ -70,75 +73,181 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          child: SizedBox(
-            width: 400,
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Icon(Icons.recycling, size: 56, color: theme.colorScheme.primary),
-                    const SizedBox(height: 8),
-                    Text('EcoEarn', textAlign: TextAlign.center, style: theme.textTheme.headlineMedium),
-                    Text('Plastic Waste Disposal Management System',
-                        textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
-                    const SizedBox(height: 24),
-                    if (_setup) ...[
-                      Text('First-time setup: create the admin account.', style: theme.textTheme.titleSmall),
-                      const SizedBox(height: 8),
-                    ],
-                    TextField(
-                      controller: _username,
-                      autofocus: true,
-                      decoration: const InputDecoration(labelText: 'Username', prefixIcon: Icon(Icons.person_outline)),
-                      onSubmitted: (_) => _submit(),
-                    ),
-                    if (_setup)
-                      TextField(
-                        controller: _displayName,
-                        textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(labelText: 'Your name', prefixIcon: Icon(Icons.badge_outlined)),
-                      ),
-                    TextField(
-                      controller: _password,
-                      obscureText: true,
-                      decoration: const InputDecoration(labelText: 'Password', prefixIcon: Icon(Icons.lock_outline)),
-                      onSubmitted: (_) => _submit(),
-                    ),
-                    if (_setup)
-                      TextField(
-                        controller: _confirm,
-                        obscureText: true,
-                        decoration: const InputDecoration(labelText: 'Confirm password', prefixIcon: Icon(Icons.lock_outline)),
-                        onSubmitted: (_) => _submit(),
-                      ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 16),
-                      Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
-                    ],
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: _busy ? null : _submit,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: _busy
-                            ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                            : Text(_setup ? 'Create admin account' : 'Sign in'),
-                      ),
-                    ),
-                  ],
+      body: Row(
+        children: [
+          const Expanded(flex: 6, child: _HeroPanel()),
+          Expanded(
+            flex: 5,
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(40),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: _form(context),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
+
+  Widget _form(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final passwordToggle = IconButton(
+      tooltip: _showPassword ? 'Hide password' : 'Show password',
+      onPressed: () => setState(() => _showPassword = !_showPassword),
+      icon: Icon(_showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(_setup ? 'Welcome! 👋' : 'Welcome back', style: text.headlineMedium),
+        const SizedBox(height: 6),
+        Text(
+          _setup
+              ? 'First-time setup: create the admin account. It can manage students, reports and other accounts.'
+              : 'Sign in to continue.',
+          style: text.bodyMedium?.copyWith(color: EcoColors.muted),
+        ),
+        const SizedBox(height: 32),
+        TextField(
+          controller: _username,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Username', prefixIcon: Icon(Icons.person_outline)),
+          onSubmitted: (_) => _submit(),
+        ),
+        if (_setup) ...[
+          const SizedBox(height: 14),
+          TextField(
+            controller: _displayName,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(labelText: 'Your name', prefixIcon: Icon(Icons.badge_outlined)),
+          ),
+        ],
+        const SizedBox(height: 14),
+        TextField(
+          controller: _password,
+          obscureText: !_showPassword,
+          decoration: InputDecoration(
+            labelText: 'Password',
+            prefixIcon: const Icon(Icons.lock_outline),
+            suffixIcon: passwordToggle,
+          ),
+          onSubmitted: (_) => _submit(),
+        ),
+        if (_setup) ...[
+          const SizedBox(height: 14),
+          TextField(
+            controller: _confirm,
+            obscureText: !_showPassword,
+            decoration: const InputDecoration(labelText: 'Confirm password', prefixIcon: Icon(Icons.lock_outline)),
+            onSubmitted: (_) => _submit(),
+          ),
+        ],
+        if (_error != null) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: EcoColors.coral.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(children: [
+              const Icon(Icons.error_outline, color: EcoColors.coral),
+              const SizedBox(width: 10),
+              Expanded(child: Text(_error!, style: const TextStyle(color: EcoColors.coral))),
+            ]),
+          ),
+        ],
+        const SizedBox(height: 28),
+        FilledButton(
+          onPressed: _busy ? null : _submit,
+          child: _busy
+              ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2.5))
+              : Text(_setup ? 'Create admin account' : 'Sign in'),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroPanel extends StatelessWidget {
+  const _HeroPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Container(
+      decoration: const BoxDecoration(gradient: EcoColors.heroGradient),
+      child: Stack(
+        children: [
+          // Soft decorative circles.
+          Positioned(top: -120, right: -80, child: _glow(360, EcoColors.mint, 0.18)),
+          Positioned(bottom: -160, left: -100, child: _glow(420, EcoColors.teal, 0.22)),
+          Padding(
+            padding: const EdgeInsets.all(56),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  const EcoLogo(size: 52),
+                  const SizedBox(width: 14),
+                  Text('EcoEarn', style: text.headlineMedium?.copyWith(color: Colors.white)),
+                ]),
+                const Spacer(),
+                Text(
+                  'Turn plastic\ninto points.',
+                  style: text.displayMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800, height: 1.1),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Plastic Waste Disposal Management System',
+                  style: text.titleMedium?.copyWith(color: Colors.white.withValues(alpha: 0.85)),
+                ),
+                const SizedBox(height: 40),
+                const _Feature(icon: Icons.contactless, text: 'Tap your ID card'),
+                const _Feature(icon: Icons.compress, text: 'Crush, drain and weigh your bottle'),
+                const _Feature(icon: Icons.stars_rounded, text: 'Earn points for approved school fines'),
+                const Spacer(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _glow(double size, Color color, double alpha) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: color.withValues(alpha: alpha)),
+      );
+}
+
+class _Feature extends StatelessWidget {
+  const _Feature({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: Row(children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: EcoColors.mint),
+          ),
+          const SizedBox(width: 14),
+          Text(text, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+        ]),
+      );
 }
