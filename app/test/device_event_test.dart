@@ -43,10 +43,12 @@ void main() {
 
   test('describeEvent reads naturally', () {
     expect(describeEvent(WeightEvent(uid: 'A3F29B11', grams: 39, points: 3)),
-        'A3F29B11 deposited 39 g → 3 points');
+        'Deposit: A3F29B11, 39 g → 3 points');
     expect(describeEvent(RejectEvent(uid: 'A3F29B11', reason: 'too_heavy', grams: 120)),
-        'A3F29B11 rejected: too heavy (120 g)');
+        'Rejected: A3F29B11, too heavy (120 g)');
     expect(describeEvent(RejectEvent(uid: 'A3F29B11', reason: 'bin_full', grams: 0)),
-        'A3F29B11 rejected: bin is full');
+        'Rejected: A3F29B11, bin is full');
+    expect(describeEvent(CardEvent(uid: 'A3F29B11'), (uid) => 'Juan Dela Cruz ($uid)'),
+        'Card tapped: Juan Dela Cruz (A3F29B11)');
   });
 }

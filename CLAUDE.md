@@ -108,6 +108,21 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
        Tested live against the ESP32 on COM3. Close Arduino Serial Monitor first:
        only one program can hold COM3. No SQLite/database yet.
        Run: cd app; fvm flutter run -d windows
+4b. [x] SQLite database + student registration (app/lib/data, app/lib/students)
+       DB: %APPDATA%\com.ecoearn\ecoearn_app\ecoearn.db (sqflite_common_ffi; sqlite3
+       bundled by the sqlite3 package's build hook). Tables: students, deposits
+       (one row per processed bottle, accepted or rejected; source 'live' or 'sd').
+       Balance = SUM(deposits.points) per student; fine deductions not built yet.
+       Rules: unassigned-card deposits are credited when that card is assigned;
+       students with deposit history can't be deleted (remove their card instead).
+       Students screen can read a card UID by tapping it on the reader ("Scan card").
+       Known gaps for later:
+       - Real firmware: a card tap starts a transaction, so scanning for registration
+         needs a laptop→ESP32 "register mode" command.
+       - SD import will duplicate live deposits unless the ESP32 sends a persistent
+         transaction id (add with SD/RTC work).
+4c. [ ] Fine deductions (needs eligible fines + points-to-peso rate from the group),
+       monthly report export, test-data CSV export
 5. [ ] After soldering: wire + test MFRC522, then HX711 (calibrate with known weights)
 6. [ ] Replace fake events with real sensor readings
 7. [ ] SD logging + RTC, LCD, then mechanism (actuator, servos, IR, lid switch)

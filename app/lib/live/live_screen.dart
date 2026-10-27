@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../data/deposit_recorder.dart';
+import '../data/student_repository.dart';
 import '../serial/device_event.dart';
 import '../serial/serial_connection.dart';
 import 'live_session.dart';
@@ -16,13 +18,16 @@ String _grams(double g) => g == g.roundToDouble() ? '${g.toInt()} g' : '${g.toSt
 String _time(DateTime t) =>
     [t.hour, t.minute, t.second].map((n) => n.toString().padLeft(2, '0')).join(':');
 
-String describeEvent(DeviceEvent event) => switch (event) {
+String _plainUid(String uid) => uid;
+
+/// [who] turns a card UID into how the student is shown, e.g. "Juan Dela Cruz (A3F29B11)".
+String describeEvent(DeviceEvent event, [String Function(String uid) who = _plainUid]) => switch (event) {
       BootEvent(:final version) => 'ESP32 started (firmware $version)',
-      CardEvent(:final uid) => 'Card tapped: $uid',
+      CardEvent(:final uid) => 'Card tapped: ${who(uid)}',
       WeightEvent(:final uid, :final grams, :final points) =>
-        '$uid deposited ${_grams(grams)} → $points ${points == 1 ? 'point' : 'points'}',
+        'Deposit: ${who(uid)}, ${_grams(grams)} → $points ${points == 1 ? 'point' : 'points'}',
       RejectEvent(:final uid, :final reason, :final grams) =>
-        '$uid rejected: ${_rejectLabels[reason] ?? reason}'
+        'Rejected: ${who(uid)}, ${_rejectLabels[reason] ?? reason}'
             '${grams > 0 ? ' (${_grams(grams)})' : ''}',
       BinEvent(:final level) => 'Bin level: $level%',
       UnknownEvent(:final raw) => 'Unrecognized message: $raw',
@@ -38,10 +43,18 @@ IconData _icon(DeviceEvent event) => switch (event) {
     };
 
 class LiveScreen extends StatefulWidget {
-  const LiveScreen({super.key, required this.connection, required this.session});
+  const LiveScreen({
+    super.key,
+    required this.connection,
+    required this.session,
+    required this.students,
+    required this.recorder,
+  });
 
   final SerialConnection connection;
   final LiveSession session;
+  final StudentRepository students;
+  final DepositRecorder recorder;
 
   @override
   State<LiveScreen> createState() => _LiveScreenState();
@@ -55,6 +68,11 @@ class _LiveScreenState extends State<LiveScreen> {
   void initState() {
     super.initState();
     _refreshPorts();
+  }
+
+  String _who(String uid) {
+    final student = widget.students.byUid(uid);
+    return student == null ? 'unregistered card $uid' : '${student.name} ($uid)';
   }
 
   void _refreshPorts() {
@@ -83,7 +101,7 @@ class _LiveScreenState extends State<LiveScreen> {
         ],
       ),
       body: ListenableBuilder(
-        listenable: Listenable.merge([widget.connection, widget.session]),
+        listenable: Listenable.merge([widget.connection, widget.session, widget.students, widget.recorder]),
         builder: (context, _) => Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -148,10 +166,11 @@ class _LiveScreenState extends State<LiveScreen> {
                     : 'Not connected'),
               ],
             ),
-            if (connection.error != null) ...[
-              const SizedBox(height: 8),
-              Text(connection.error!, style: TextStyle(color: colors.error)),
-            ],
+            for (final error in [connection.error, widget.recorder.error])
+              if (error != null) ...[
+                const SizedBox(height: 8),
+                Text(error, style: TextStyle(color: colors.error)),
+              ],
           ],
         ),
       ),
@@ -163,12 +182,13 @@ class _LiveScreenState extends State<LiveScreen> {
     final colors = Theme.of(context).colorScheme;
 
     final (lastTitle, lastSubtitle) = switch (session.lastResult) {
-      WeightEvent(:final uid, :final grams, :final points) => ('${_grams(grams)} · $points pts', uid),
-      RejectEvent(:final uid, :final reason) => ('Rejected', '$uid · ${_rejectLabels[reason] ?? reason}'),
+      WeightEvent(:final uid, :final grams, :final points) => ('${_grams(grams)} · $points pts', _who(uid)),
+      RejectEvent(:final uid, :final reason) => ('Rejected', '${_who(uid)} · ${_rejectLabels[reason] ?? reason}'),
       _ => ('—', 'No bottles yet'),
     };
     final binLevel = session.binLevel;
     final binFull = binLevel != null && binLevel >= binFullPercent;
+    final processingUid = session.processingUid;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,8 +196,11 @@ class _LiveScreenState extends State<LiveScreen> {
         _StatCard(
           icon: Icons.contactless,
           label: 'Current student',
-          value: session.processingUid ?? '—',
-          detail: session.processingUid == null ? 'Waiting for a card tap' : 'Processing bottle…',
+          value: processingUid == null
+              ? '—'
+              : widget.students.byUid(processingUid)?.name ?? 'Unregistered card',
+          detail: processingUid == null ? 'Waiting for a card tap' : '$processingUid · Processing bottle…',
+          valueColor: processingUid != null && widget.students.byUid(processingUid) == null ? colors.error : null,
         ),
         _StatCard(icon: Icons.scale, label: 'Last bottle', value: lastTitle, detail: lastSubtitle),
         _StatCard(
@@ -219,7 +242,7 @@ class _LiveScreenState extends State<LiveScreen> {
           return ListTile(
             dense: true,
             leading: Icon(_icon(event), color: event is RejectEvent ? Theme.of(context).colorScheme.error : null),
-            title: Text(describeEvent(event)),
+            title: Text(describeEvent(event, _who)),
             trailing: Text(_time(event.receivedAt)),
           );
         },
