@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
@@ -30,6 +31,15 @@ bool verifyPassword(String password, String stored) {
   }
   return diff == 0;
 }
+
+// Hashing is deliberately slow, so the app runs it on a background isolate.
+// These must stay top-level: a closure created inside a class method can drag
+// `this` (and everything it references, like UI listeners) into the isolate
+// message, which fails with "object is unsendable".
+Future<String> hashPasswordInBackground(String password) => Isolate.run(() => hashPassword(password));
+
+Future<bool> verifyPasswordInBackground(String password, String stored) =>
+    Isolate.run(() => verifyPassword(password, stored));
 
 // One 32-byte block is all a SHA-256 key needs.
 List<int> _pbkdf2(String password, List<int> salt, int iterations) {

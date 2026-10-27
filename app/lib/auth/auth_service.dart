@@ -1,5 +1,3 @@
-import 'dart:isolate';
-
 import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -33,14 +31,10 @@ class AuthService extends ChangeNotifier {
     return _accounts.where((a) => a.username == name).firstOrNull;
   }
 
-  // Hashing is deliberately slow, so it runs off the UI thread.
-  static Future<bool> _verify(String password, String hash) =>
-      Isolate.run(() => verifyPassword(password, hash));
-
   /// Returns an error message, or null when signed in.
   Future<String?> login(String username, String password) async {
     final account = _find(username);
-    if (account == null || !await _verify(password, account.passwordHash)) {
+    if (account == null || !await verifyPasswordInBackground(password, account.passwordHash)) {
       return 'Wrong username or password.';
     }
     _current = account;
@@ -56,7 +50,7 @@ class AuthService extends ChangeNotifier {
   /// True if [password] belongs to any admin account (used to unlock the display kiosk).
   Future<bool> isAdminPassword(String password) async {
     for (final admin in _accounts.where((a) => a.role == Role.admin)) {
-      if (await _verify(password, admin.passwordHash)) return true;
+      if (await verifyPasswordInBackground(password, admin.passwordHash)) return true;
     }
     return false;
   }
@@ -90,7 +84,7 @@ class AuthService extends ChangeNotifier {
       'username': name,
       'display_name': displayName.trim(),
       'role': role.name,
-      if (password.isNotEmpty) 'password_hash': await Isolate.run(() => hashPassword(password)),
+      if (password.isNotEmpty) 'password_hash': await hashPasswordInBackground(password),
     };
     if (existing == null) {
       await _db.insert('accounts', {...row, 'created_at': DateTime.now().toIso8601String()});

@@ -142,14 +142,19 @@ class _UnlockDialogState extends State<_UnlockDialog> {
 
   Future<void> _check() async {
     setState(() => _checking = true);
-    final ok = await widget.auth.isAdminPassword(_password.text);
+    String? error;
+    try {
+      if (!await widget.auth.isAdminPassword(_password.text)) error = 'Wrong admin password.';
+    } catch (e) {
+      error = 'Something went wrong: $e';
+    }
     if (!mounted) return;
-    if (ok) {
+    if (error == null) {
       Navigator.pop(context, true);
     } else {
       setState(() {
         _checking = false;
-        _error = 'Wrong admin password.';
+        _error = error;
         _password.clear();
       });
     }

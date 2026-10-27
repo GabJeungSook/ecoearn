@@ -31,20 +31,24 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     String? error;
-    if (_setup) {
-      if (_password.text != _confirm.text) {
-        error = 'The two passwords don\'t match.';
+    try {
+      if (_setup) {
+        if (_password.text != _confirm.text) {
+          error = 'The two passwords don\'t match.';
+        } else {
+          error = await widget.auth.save(
+            username: _username.text,
+            displayName: _displayName.text,
+            role: Role.admin,
+            password: _password.text,
+          );
+        }
+        error ??= await widget.auth.login(_username.text, _password.text);
       } else {
-        error = await widget.auth.save(
-          username: _username.text,
-          displayName: _displayName.text,
-          role: Role.admin,
-          password: _password.text,
-        );
+        error = await widget.auth.login(_username.text, _password.text);
       }
-      error ??= await widget.auth.login(_username.text, _password.text);
-    } else {
-      error = await widget.auth.login(_username.text, _password.text);
+    } catch (e) {
+      error = 'Something went wrong: $e';
     }
 
     if (!mounted) return;

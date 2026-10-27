@@ -112,13 +112,18 @@ class _AccountDialogState extends State<_AccountDialog> {
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    final error = await widget.auth.save(
-      existing: widget.account,
-      username: _username.text,
-      displayName: _displayName.text,
-      role: _role,
-      password: _password.text,
-    );
+    String? error;
+    try {
+      error = await widget.auth.save(
+        existing: widget.account,
+        username: _username.text,
+        displayName: _displayName.text,
+        role: _role,
+        password: _password.text,
+      );
+    } catch (e) {
+      error = 'Something went wrong: $e';
+    }
     if (!mounted) return;
     if (error == null) {
       Navigator.pop(context);

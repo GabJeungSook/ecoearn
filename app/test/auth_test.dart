@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:ecoearn_app/auth/account.dart';
 import 'package:ecoearn_app/auth/auth_service.dart';
@@ -44,6 +45,18 @@ void main() {
 
     auth.logout();
     expect(auth.current, isNull);
+  });
+
+  test('works while a screen is listening (listeners hold unsendable objects)', () async {
+    // In the app, widgets listen to AuthService. A ReceivePort stands in for
+    // the things those listeners reference that can't be sent to an isolate.
+    final port = ReceivePort();
+    addTearDown(port.close);
+    auth.addListener(() => port.sendPort);
+
+    expect(await auth.save(username: 'admin', displayName: 'Gab', role: Role.admin, password: 'secret123'), isNull);
+    expect(await auth.login('admin', 'secret123'), isNull);
+    expect(await auth.isAdminPassword('secret123'), isTrue);
   });
 
   test('validation and last-admin protection', () async {
