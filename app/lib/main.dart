@@ -24,7 +24,7 @@ Future<void> main() async {
   await windowManager.ensureInitialized();
   await windowManager.setTitle('EcoEarn');
   await windowManager.setMinimumSize(const Size(1100, 700));
-  await windowManager.maximize();
+  await windowManager.setFullScreen(true); // no title bar; F11 toggles
 
   final databasePath = await AppDatabase.defaultPath();
   final db = await AppDatabase.open(databasePath);

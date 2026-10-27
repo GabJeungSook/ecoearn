@@ -5,6 +5,7 @@ import '../data/student_repository.dart';
 import '../serial/device_event.dart';
 import '../serial/serial_connection.dart';
 import '../theme/app_theme.dart';
+import '../widgets/page_parts.dart';
 import '../widgets/stat_card.dart';
 import 'live_session.dart';
 
@@ -105,92 +106,69 @@ class _LiveScreenState extends State<LiveScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('EcoEarn — Live'),
-        actions: [
-          TextButton.icon(
-            onPressed: widget.session.clear,
-            icon: const Icon(Icons.clear_all),
-            label: const Text('Clear'),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
       body: ListenableBuilder(
         listenable: Listenable.merge([widget.connection, widget.session, widget.students, widget.recorder]),
-        builder: (context, _) => Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+        builder: (context, _) {
+          final connection = widget.connection;
+          final firmware = widget.session.firmwareVersion;
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _connectionBar(context),
-              const SizedBox(height: 16),
-              _statusCards(context),
-              const SizedBox(height: 16),
-              Text('Event log', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
+              PageHeader(
+                overline: connection.isConnected
+                    ? '● Connected to ${connection.portName}${firmware == null ? '' : ' · firmware $firmware'}'
+                    : '○ Not connected',
+                title: 'Live',
+                actions: _connectionActions(),
+              ),
+              for (final error in [connection.error, widget.recorder.error])
+                if (error != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(32, 0, 32, 12),
+                    child: Text(error, style: const TextStyle(color: EcoColors.coral)),
+                  ),
+              Padding(padding: const EdgeInsets.symmetric(horizontal: 26), child: _statusCards(context)),
+              const Padding(padding: EdgeInsets.fromLTRB(32, 28, 32, 10), child: SmallLabel('Event log')),
               Expanded(child: _eventLog(context)),
             ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 
-  Widget _connectionBar(BuildContext context) {
+  List<Widget> _connectionActions() {
     final connection = widget.connection;
-    final colors = Theme.of(context).colorScheme;
     final connected = connection.isConnected;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Text('ESP32 port:'),
-                const SizedBox(width: 12),
-                DropdownButton<String>(
-                  value: _selectedPort,
-                  hint: const Text('No ports found'),
-                  onChanged: connected ? null : (name) => setState(() => _selectedPort = name),
-                  items: [
-                    for (final p in _ports) DropdownMenuItem(value: p.name, child: Text(p.description)),
-                  ],
-                ),
-                IconButton(
-                  tooltip: 'Refresh port list',
-                  onPressed: connected ? null : _refreshPorts,
-                  icon: const Icon(Icons.refresh),
-                ),
-                const SizedBox(width: 8),
-                if (connected)
-                  OutlinedButton(onPressed: connection.disconnect, child: const Text('Disconnect'))
-                else
-                  FilledButton(
-                    onPressed: _selectedPort == null ? null : () => connection.connect(_selectedPort!),
-                    child: const Text('Connect'),
-                  ),
-                const Spacer(),
-                Icon(Icons.circle, size: 12, color: connected ? Colors.green : colors.outline),
-                const SizedBox(width: 6),
-                Text(connected
-                    ? 'Connected to ${connection.portName}'
-                        '${widget.session.firmwareVersion == null ? '' : ' · firmware ${widget.session.firmwareVersion}'}'
-                    : 'Not connected'),
-              ],
-            ),
-            for (final error in [connection.error, widget.recorder.error])
-              if (error != null) ...[
-                const SizedBox(height: 8),
-                Text(error, style: TextStyle(color: colors.error)),
-              ],
-          ],
+    return [
+      Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(color: EcoColors.field, borderRadius: BorderRadius.circular(10)),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: _selectedPort,
+            hint: const Text('No ports found'),
+            borderRadius: BorderRadius.circular(12),
+            onChanged: connected ? null : (name) => setState(() => _selectedPort = name),
+            items: [
+              for (final p in _ports) DropdownMenuItem(value: p.name, child: Text(p.description)),
+            ],
+          ),
         ),
       ),
-    );
+      SquareIconButton(icon: Icons.refresh, tooltip: 'Refresh port list', onPressed: connected ? null : _refreshPorts),
+      SizedBox(
+        height: 40,
+        child: connected
+            ? OutlinedButton(onPressed: connection.disconnect, child: const Text('Disconnect'))
+            : FilledButton(
+                onPressed: _selectedPort == null ? null : () => connection.connect(_selectedPort!),
+                child: const Text('Connect'),
+              ),
+      ),
+      SquareIconButton(icon: Icons.clear_all, tooltip: 'Clear the log', onPressed: widget.session.clear),
+    ];
   }
 
   Widget _statusCards(BuildContext context) {
@@ -241,7 +219,7 @@ class _LiveScreenState extends State<LiveScreen> {
           color: EcoColors.teal,
           label: 'This session',
           value: '${session.points} pts',
-          detail: '${session.bottles} bottles · ${session.rejects} rejected',
+          detail: '${session.bottles} ${session.bottles == 1 ? 'bottle' : 'bottles'} · ${session.rejects} rejected',
         ),
       ],
     );
@@ -250,28 +228,27 @@ class _LiveScreenState extends State<LiveScreen> {
   Widget _eventLog(BuildContext context) {
     final log = widget.session.log;
     if (log.isEmpty) {
-      return Card(
-        child: Center(
-          child: Text(widget.connection.isConnected
-              ? 'Connected. Waiting for messages from the ESP32…'
-              : 'Connect to the ESP32 to see live events.'),
-        ),
+      return EmptyState(
+        icon: Icons.sensors,
+        message: widget.connection.isConnected
+            ? 'Connected. Waiting for messages from the ESP32…'
+            : 'Connect to the ESP32 to see live events.',
       );
     }
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: ListView.separated(
-        itemCount: log.length,
-        separatorBuilder: (_, _) => const Divider(height: 1),
-        itemBuilder: (context, i) {
-          final event = log[i];
-          return ListTile(
-            leading: IconBadge(icon: _icon(event), color: _eventColor(event), size: 36),
-            title: Text(describeEvent(event, _who), style: const TextStyle(fontWeight: FontWeight.w500)),
-            trailing: Text(_time(event.receivedAt), style: const TextStyle(color: EcoColors.muted)),
-          );
-        },
-      ),
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(32, 0, 32, 24),
+      itemCount: log.length,
+      itemBuilder: (context, i) {
+        final event = log[i];
+        return RowCard(
+          child: Row(children: [
+            IconBadge(icon: _icon(event), color: _eventColor(event), size: 32),
+            const SizedBox(width: 14),
+            Expanded(child: Text(describeEvent(event, _who), style: const TextStyle(fontWeight: FontWeight.w500))),
+            Text(_time(event.receivedAt), style: const TextStyle(color: EcoColors.muted, fontSize: 13)),
+          ]),
+        );
+      },
     );
   }
 }

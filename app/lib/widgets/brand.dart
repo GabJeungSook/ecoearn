@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-/// The EcoEarn logo: a recycling mark on a bright green rounded tile.
+/// The EcoEarn logo: a recycling mark on a green rounded tile.
 class EcoLogo extends StatelessWidget {
-  const EcoLogo({super.key, this.size = 48});
+  const EcoLogo({super.key, this.size = 40});
 
   final double size;
 
@@ -12,14 +12,8 @@ class EcoLogo extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [EcoColors.mint, EcoColors.emerald]),
-          borderRadius: BorderRadius.circular(size * 0.3),
-          boxShadow: [
-            BoxShadow(color: EcoColors.mint.withValues(alpha: 0.35), blurRadius: size * 0.4, offset: Offset(0, size * 0.1)),
-          ],
-        ),
-        child: Icon(Icons.recycling, color: Colors.white, size: size * 0.62),
+        decoration: BoxDecoration(color: EcoColors.emerald, borderRadius: BorderRadius.circular(size * 0.28)),
+        child: Icon(Icons.recycling, color: Colors.white, size: size * 0.6),
       );
 }
 
@@ -44,13 +38,10 @@ class InitialsAvatar extends StatelessWidget {
         width: size,
         height: size,
         alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(colors: [color.withValues(alpha: 0.75), color]),
-        ),
+        decoration: BoxDecoration(shape: BoxShape.circle, color: color.withValues(alpha: 0.14)),
         child: Text(
           initials(name),
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: size * 0.38),
+          style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: size * 0.36),
         ),
       );
 }

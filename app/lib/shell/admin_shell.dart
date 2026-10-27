@@ -14,7 +14,7 @@ import '../reports/reports_screen.dart';
 import '../serial/serial_connection.dart';
 import '../students/students_screen.dart';
 import 'app_sidebar.dart';
-import 'rail_footer.dart';
+import 'window_controls.dart';
 
 /// Everything: Live, Students, Reports, Accounts.
 class AdminShell extends StatefulWidget {
@@ -79,12 +79,12 @@ class _AdminShellState extends State<AdminShell> {
             AppSidebar(
               auth: widget.auth,
               selectedIndex: _screen,
-              onDestinationSelected: (i) => setState(() => _screen = i),
-              destinations: const [
-                NavigationRailDestination(icon: Icon(Icons.sensors), label: Text('Live')),
-                NavigationRailDestination(icon: Icon(Icons.people_outline), label: Text('Students')),
-                NavigationRailDestination(icon: Icon(Icons.bar_chart_rounded), label: Text('Reports')),
-                NavigationRailDestination(icon: Icon(Icons.manage_accounts_outlined), label: Text('Accounts')),
+              onSelected: (i) => setState(() => _screen = i),
+              items: const [
+                SidebarItem(Icons.sensors, 'Live'),
+                SidebarItem(Icons.people_outline, 'Students'),
+                SidebarItem(Icons.bar_chart_rounded, 'Reports'),
+                SidebarItem(Icons.manage_accounts_outlined, 'Accounts'),
               ],
             ),
             Expanded(
@@ -100,6 +100,7 @@ class _AdminShellState extends State<AdminShell> {
                   ),
                   StudentsScreen(
                     students: widget.students,
+                    reports: widget.reports,
                     connection: widget.connection,
                     footer: 'Database: ${widget.databasePath}',
                   ),

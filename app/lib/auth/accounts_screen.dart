@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+import '../widgets/page_parts.dart';
+import '../widgets/stat_card.dart';
 import 'account.dart';
 import 'auth_service.dart';
 
@@ -33,56 +36,83 @@ class AccountsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Accounts'),
-        actions: [
-          FilledButton.icon(
-            onPressed: () => _edit(context, null),
-            icon: const Icon(Icons.person_add),
-            label: const Text('Add account'),
-          ),
-          const SizedBox(width: 16),
-        ],
-      ),
       body: ListenableBuilder(
         listenable: auth,
-        builder: (context, _) => Padding(
-          padding: const EdgeInsets.all(16),
-          child: Card(
-            clipBehavior: Clip.antiAlias,
-            child: ListView.separated(
-              itemCount: auth.accounts.length,
-              separatorBuilder: (_, _) => const Divider(height: 1),
-              itemBuilder: (context, i) {
-                final a = auth.accounts[i];
-                final isYou = a.id == auth.current?.id;
-                return ListTile(
-                  onTap: () => _edit(context, a),
-                  leading: CircleAvatar(child: Icon(_roleIcon(a.role))),
-                  title: Text('${a.displayName}${isYou ? ' (you)' : ''}'),
-                  subtitle: Text(a.username),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Chip(label: Text(a.role.label)),
-                      const SizedBox(width: 8),
-                      IconButton(tooltip: 'Edit', onPressed: () => _edit(context, a), icon: const Icon(Icons.edit_outlined)),
-                      IconButton(
-                        tooltip: 'Delete',
-                        onPressed: isYou ? null : () => _delete(context, a),
-                        icon: const Icon(Icons.delete_outline),
-                      ),
-                    ],
-                  ),
-                );
-              },
+        builder: (context, _) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            PageHeader(
+              overline: '${auth.accounts.length} accounts',
+              title: 'Accounts',
+              actions: [
+                SquareIconButton(
+                  icon: Icons.add,
+                  tooltip: 'Add account',
+                  primary: true,
+                  onPressed: () => _edit(context, null),
+                ),
+              ],
             ),
-          ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 32),
+              child: ColumnHeadings(labels: ['Name', 'Username', 'Role'], flex: [4, 3, 3], trailingWidth: 96),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(32, 0, 32, 24),
+                children: [
+                  for (final a in auth.accounts) _row(context, a),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  Widget _row(BuildContext context, Account a) {
+    final isYou = a.id == auth.current?.id;
+    return RowCard(
+      onTap: () => _edit(context, a),
+      child: Row(children: [
+        Expanded(
+          flex: 4,
+          child: Row(children: [
+            IconBadge(icon: _roleIcon(a.role), color: _roleColor(a.role), size: 32),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text('${a.displayName}${isYou ? '  (you)' : ''}',
+                  overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+            ),
+          ]),
+        ),
+        Expanded(flex: 3, child: Text(a.username)),
+        Expanded(
+          flex: 3,
+          child: Text(a.role.label, style: TextStyle(color: _roleColor(a.role), fontWeight: FontWeight.w600)),
+        ),
+        SizedBox(
+          width: 96,
+          child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+            IconButton(tooltip: 'Edit', onPressed: () => _edit(context, a), icon: const Icon(Icons.edit_outlined, size: 20)),
+            IconButton(
+              tooltip: 'Delete',
+              onPressed: isYou ? null : () => _delete(context, a),
+              icon: const Icon(Icons.delete_outline, size: 20),
+            ),
+          ]),
+        ),
+      ]),
+    );
+  }
 }
+
+Color _roleColor(Role role) => switch (role) {
+      Role.admin => EcoColors.emerald,
+      Role.display => EcoColors.sky,
+      Role.officer => EcoColors.amber,
+    };
 
 IconData _roleIcon(Role role) => switch (role) {
       Role.admin => Icons.admin_panel_settings_outlined,

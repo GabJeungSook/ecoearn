@@ -5,6 +5,7 @@ import '../data/csv_export.dart';
 import '../data/reports.dart';
 import '../data/student_repository.dart';
 import '../theme/app_theme.dart';
+import '../widgets/page_parts.dart';
 import '../widgets/stat_card.dart';
 
 enum _Export { monthlySummary, monthDeposits, allDeposits }
@@ -114,79 +115,59 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget build(BuildContext context) {
     final report = _report;
     return Scaffold(
-      appBar: AppBar(
-        title: widget.subtitle == null
-            ? const Text('Monthly report')
-            : ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Monthly report'),
-                subtitle: Text(widget.subtitle!),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PageHeader(
+            overline: widget.subtitle ?? 'Monthly report',
+            title: '${monthNames[_month - 1]} $_year',
+            actions: [
+              SquareIconButton(icon: Icons.chevron_left, tooltip: 'Previous month', onPressed: () => _shiftMonth(-1)),
+              SquareIconButton(
+                icon: Icons.chevron_right,
+                tooltip: 'Next month',
+                onPressed: _isCurrentMonth ? null : () => _shiftMonth(1),
               ),
-        actions: [
-          MenuAnchor(
-            builder: (context, controller, _) => FilledButton.icon(
-              onPressed: () => controller.isOpen ? controller.close() : controller.open(),
-              icon: const Icon(Icons.download),
-              label: const Text('Export CSV'),
-            ),
-            menuChildren: [
-              MenuItemButton(
-                onPressed: () => _export(_Export.monthlySummary),
-                child: const Text('Monthly report (per student)'),
-              ),
-              MenuItemButton(
-                onPressed: () => _export(_Export.monthDeposits),
-                child: const Text("This month's deposits (every bottle)"),
-              ),
-              MenuItemButton(
-                onPressed: () => _export(_Export.allDeposits),
-                child: const Text('All deposits, all months (test data)'),
-              ),
-              if (widget.onExportForOfficers != null) ...[
-                const Divider(),
-                MenuItemButton(
-                  onPressed: widget.onExportForOfficers,
-                  leadingIcon: const Icon(Icons.save_alt),
-                  child: const Text('Data file for officers (.ecoearn)'),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(width: 16),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  tooltip: 'Previous month',
-                  onPressed: () => _shiftMonth(-1),
-                  icon: const Icon(Icons.chevron_left),
-                ),
-                SizedBox(
-                  width: 200,
-                  child: Text(
-                    '${monthNames[_month - 1]} $_year',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall,
+              MenuAnchor(
+                builder: (context, controller, _) => SizedBox(
+                  height: 40,
+                  child: FilledButton.icon(
+                    onPressed: () => controller.isOpen ? controller.close() : controller.open(),
+                    icon: const Icon(Icons.download, size: 18),
+                    label: const Text('Export'),
                   ),
                 ),
-                IconButton(
-                  tooltip: 'Next month',
-                  onPressed: _isCurrentMonth ? null : () => _shiftMonth(1),
-                  icon: const Icon(Icons.chevron_right),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (report == null)
-              const Expanded(child: Center(child: CircularProgressIndicator()))
-            else ...[
-              Row(
+                menuChildren: [
+                  MenuItemButton(
+                    onPressed: () => _export(_Export.monthlySummary),
+                    child: const Text('Monthly report (per student) · CSV'),
+                  ),
+                  MenuItemButton(
+                    onPressed: () => _export(_Export.monthDeposits),
+                    child: const Text("This month's deposits (every bottle) · CSV"),
+                  ),
+                  MenuItemButton(
+                    onPressed: () => _export(_Export.allDeposits),
+                    child: const Text('All deposits, all months (test data) · CSV'),
+                  ),
+                  if (widget.onExportForOfficers != null) ...[
+                    const Divider(),
+                    MenuItemButton(
+                      onPressed: widget.onExportForOfficers,
+                      leadingIcon: const Icon(Icons.save_alt),
+                      child: const Text('Data file for officers (.ecoearn)'),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+          if (report == null)
+            const Expanded(child: Center(child: CircularProgressIndicator()))
+          else ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 26),
+              child: Row(
                 children: [
                   StatCard(
                     icon: Icons.recycling,
@@ -218,52 +199,61 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Expanded(child: _table(context, report)),
-            ],
+            ),
+            const SizedBox(height: 28),
+            Expanded(child: _table(report)),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _table(BuildContext context, MonthlyReport report) {
+  static const _flex = [1, 5, 3, 3, 2, 2, 2, 2];
+
+  Widget _table(MonthlyReport report) {
     if (report.rows.isEmpty) {
-      return Card(child: Center(child: Text('No deposits in ${report.title}.')));
+      return EmptyState(icon: Icons.bar_chart_rounded, message: 'No deposits in ${report.title}.');
     }
-    final colors = Theme.of(context).colorScheme;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
-        child: SizedBox(
-          width: double.infinity,
-          child: DataTable(
-            columns: const [
-              DataColumn(label: Text('#')),
-              DataColumn(label: Text('Student')),
-              DataColumn(label: Text('Student ID')),
-              DataColumn(label: Text('Grade & section')),
-              DataColumn(label: Text('Bottles'), numeric: true),
-              DataColumn(label: Text('Grams'), numeric: true),
-              DataColumn(label: Text('Points'), numeric: true),
-              DataColumn(label: Text('Rejected'), numeric: true),
-            ],
-            rows: [
-              for (final (i, r) in report.rows.indexed)
-                DataRow(cells: [
-                  DataCell(Text('${i + 1}')),
-                  DataCell(Text(r.name, style: r.isRegistered ? null : TextStyle(color: colors.error))),
-                  DataCell(Text(r.studentNo ?? '—')),
-                  DataCell(Text(r.gradeSection)),
-                  DataCell(Text('${r.bottles}')),
-                  DataCell(Text(r.grams.toStringAsFixed(1))),
-                  DataCell(Text('${r.points}')),
-                  DataCell(Text('${r.rejected}')),
-                ]),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 32),
+          child: ColumnHeadings(
+            labels: ['#', 'Student', 'Student ID', 'Grade & section', 'Bottles', 'Grams', 'Points', 'Rejected'],
+            flex: _flex,
           ),
         ),
-      ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(32, 0, 32, 24),
+            itemCount: report.rows.length,
+            itemBuilder: (context, i) {
+              final r = report.rows[i];
+              final cells = <Widget>[
+                Text('${i + 1}', style: const TextStyle(color: EcoColors.muted)),
+                Text(r.name,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: r.isRegistered ? null : EcoColors.coral,
+                    )),
+                Text(r.studentNo ?? '—'),
+                Text(r.gradeSection, overflow: TextOverflow.ellipsis),
+                Text('${r.bottles}'),
+                Text(r.grams.toStringAsFixed(1)),
+                Text('${r.points}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                Text('${r.rejected}', style: TextStyle(color: r.rejected > 0 ? EcoColors.coral : EcoColors.muted)),
+              ];
+              return RowCard(
+                child: Row(children: [
+                  for (var c = 0; c < cells.length; c++) Expanded(flex: _flex[c], child: cells[c]),
+                ]),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

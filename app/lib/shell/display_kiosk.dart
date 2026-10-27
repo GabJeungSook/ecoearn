@@ -54,7 +54,7 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
     super.initState();
     windowManager.addListener(this);
     windowManager.setPreventClose(true);
-    windowManager.setFullScreen(true);
+    windowManager.setFullScreen(true); // in case the admin switched it off with F11
     _connectIfNeeded();
     _reconnect = Timer.periodic(_reconnectEvery, (_) => _connectIfNeeded());
     _clock = Timer.periodic(const Duration(seconds: 1), (_) => setState(() => _now = DateTime.now()));
@@ -69,7 +69,6 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
     widget.students.removeListener(_loadTotals);
     windowManager.removeListener(this);
     windowManager.setPreventClose(false);
-    windowManager.setFullScreen(false);
     super.dispose();
   }
 
@@ -114,7 +113,7 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(gradient: EcoColors.heroGradient),
+        color: EcoColors.background,
         padding: const EdgeInsets.all(28),
         child: ListenableBuilder(
           listenable: Listenable.merge([widget.connection, widget.session, widget.students]),
@@ -156,7 +155,6 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
   }
 
   Widget _topBar(BuildContext context) {
-    final text = Theme.of(context).textTheme;
     final connected = widget.connection.isConnected;
     final hour = _now.hour % 12 == 0 ? 12 : _now.hour % 12;
     final time = '$hour:${_now.minute.toString().padLeft(2, '0')} ${_now.hour < 12 ? 'AM' : 'PM'}';
@@ -167,34 +165,34 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
         const EcoLogo(size: 56),
         const SizedBox(width: 16),
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('EcoEarn', style: text.headlineMedium?.copyWith(color: Colors.white)),
-          Text('Recycle plastic bottles, earn points',
-              style: text.titleSmall?.copyWith(color: Colors.white.withValues(alpha: 0.75))),
+          const Text('EcoEarn', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
+          const Text('Recycle plastic bottles, earn points', style: TextStyle(color: EcoColors.muted)),
         ]),
         const Spacer(),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text(time, style: text.headlineMedium?.copyWith(color: Colors.white)),
-          Text(date, style: text.titleSmall?.copyWith(color: Colors.white.withValues(alpha: 0.75))),
+          Text(time, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
+          Text(date, style: const TextStyle(color: EcoColors.muted)),
         ]),
         const SizedBox(width: 24),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.12),
+            color: Colors.white,
+            border: Border.all(color: EcoColors.line),
             borderRadius: BorderRadius.circular(30),
           ),
           child: Row(children: [
-            Icon(Icons.circle, size: 10, color: connected ? EcoColors.mint : EcoColors.amber),
+            Icon(Icons.circle, size: 10, color: connected ? EcoColors.emerald : EcoColors.amber),
             const SizedBox(width: 8),
             Text(connected ? 'Machine ready' : 'Connecting…',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                style: const TextStyle(fontWeight: FontWeight.w600)),
           ]),
         ),
         const SizedBox(width: 8),
         IconButton(
           tooltip: 'Exit display mode',
           onPressed: _unlock,
-          icon: Icon(Icons.lock_outline, color: Colors.white.withValues(alpha: 0.6)),
+          icon: const Icon(Icons.lock_outline, color: EcoColors.muted),
         ),
       ],
     );
@@ -277,7 +275,7 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
         width: 360,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: const LinearProgressIndicator(minHeight: 10, backgroundColor: Color(0xFFE6F4EA)),
+          child: const LinearProgressIndicator(minHeight: 8, backgroundColor: EcoColors.mint),
         ),
       ),
     ]);
@@ -294,23 +292,20 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
         duration: const Duration(milliseconds: 900),
         curve: Curves.elasticOut,
         builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
-        child: ShaderMask(
-          shaderCallback: (bounds) => EcoColors.highlightGradient.createShader(bounds),
-          child: Text(
-            '+${w.points}',
-            style: const TextStyle(fontSize: 160, fontWeight: FontWeight.w900, color: Colors.white, height: 1),
-          ),
+        child: Text(
+          '+${w.points}',
+          style: const TextStyle(fontSize: 160, fontWeight: FontWeight.w800, color: EcoColors.emerald, height: 1),
         ),
       ),
       Text(w.points == 1 ? 'point' : 'points',
           style: text.displaySmall?.copyWith(color: EcoColors.emerald, fontWeight: FontWeight.w800)),
       const SizedBox(height: 24),
-      Text('$grams g of plastic recycled ♻️', style: text.headlineSmall),
+      Text('$grams g of plastic recycled', style: text.headlineSmall),
       const SizedBox(height: 20),
       if (student != null)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-          decoration: BoxDecoration(color: const Color(0xFFE8F5EC), borderRadius: BorderRadius.circular(40)),
+          decoration: BoxDecoration(color: EcoColors.mint, borderRadius: BorderRadius.circular(40)),
           child: Text(
             'Thank you, ${student.name.split(' ').first}!  Total: ${student.points} points',
             style: text.titleLarge?.copyWith(color: EcoColors.forest),
@@ -403,7 +398,7 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
         if (top.isEmpty)
           const Expanded(
             child: Center(
-              child: Text('Be the first to recycle this month! 🌱',
+              child: Text('Be the first to recycle this month!',
                   textAlign: TextAlign.center, style: TextStyle(color: EcoColors.muted, fontSize: 16)),
             ),
           )
@@ -427,8 +422,8 @@ class _KioskCard extends StatelessWidget {
         padding: padding,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 30, offset: const Offset(0, 12))],
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: EcoColors.line),
         ),
         child: child,
       );
@@ -493,7 +488,7 @@ class _LeaderRow extends StatelessWidget {
         ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(color: const Color(0xFFE8F5EC), borderRadius: BorderRadius.circular(20)),
+          decoration: BoxDecoration(color: EcoColors.mint, borderRadius: BorderRadius.circular(20)),
           child: Text('${row.points} pts',
               style: const TextStyle(color: EcoColors.forest, fontWeight: FontWeight.w800)),
         ),
@@ -569,7 +564,7 @@ class _PulsingIconState extends State<_PulsingIcon> with SingleTickerProviderSta
             Container(
               width: 140,
               height: 140,
-              decoration: const BoxDecoration(shape: BoxShape.circle, gradient: EcoColors.highlightGradient),
+              decoration: const BoxDecoration(shape: BoxShape.circle, color: EcoColors.emerald),
               child: Icon(widget.icon, color: Colors.white, size: 72),
             ),
           ]),

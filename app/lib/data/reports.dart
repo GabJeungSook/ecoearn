@@ -49,6 +49,34 @@ class MonthlyReport {
   int get students => rows.where((r) => r.isRegistered).length;
 }
 
+class StudentSummary {
+  const StudentSummary({
+    required this.bottles,
+    required this.grams,
+    required this.rejected,
+    required this.monthPoints,
+    required this.monthTotalPoints,
+    required this.recent,
+  });
+
+  final int bottles;
+  final double grams;
+  final int rejected;
+  final int monthPoints;
+
+  /// Points everyone earned this month.
+  final int monthTotalPoints;
+
+  /// Newest first.
+  final List<DepositRecord> recent;
+
+  /// Share of this student's deposits that were accepted, 0–1.
+  double get acceptanceRate => bottles + rejected == 0 ? 0 : bottles / (bottles + rejected);
+
+  /// This student's share of all points earned this month, 0–1.
+  double get monthShare => monthTotalPoints == 0 ? 0 : monthPoints / monthTotalPoints;
+}
+
 /// One saved deposit with its student details, for CSV export.
 class DepositRecord {
   const DepositRecord(this.row);
@@ -116,6 +144,37 @@ class Reports {
           rejected: r['rejected'] as int,
         ),
     ];
+  }
+
+  /// One student's lifetime totals, this month's share of points, and latest deposits.
+  Future<StudentSummary> studentSummary(int studentId, {int recentCount = 6}) async {
+    final totals = (await _db.rawQuery('''
+      SELECT COALESCE(SUM(reject_reason IS NULL), 0) AS bottles,
+             COALESCE(SUM(CASE WHEN reject_reason IS NULL THEN grams ELSE 0 END), 0) AS grams,
+             COALESCE(SUM(reject_reason IS NOT NULL), 0) AS rejected
+      FROM deposits WHERE student_id = ?''', [studentId])).first;
+
+    final now = DateTime.now();
+    final month = (await _db.rawQuery('''
+      SELECT COALESCE(SUM(CASE WHEN student_id = ? THEN points ELSE 0 END), 0) AS mine,
+             COALESCE(SUM(points), 0) AS total
+      FROM deposits WHERE occurred_at >= ? AND occurred_at < ?''',
+        [studentId, _monthStart(now.year, now.month), _nextMonthStart(now.year, now.month)])).first;
+
+    final recent = await _db.rawQuery('''
+      SELECT d.*, s.student_no, s.name, s.grade_section
+      FROM deposits d LEFT JOIN students s ON s.id = d.student_id
+      WHERE d.student_id = ?
+      ORDER BY d.occurred_at DESC, d.id DESC LIMIT ?''', [studentId, recentCount]);
+
+    return StudentSummary(
+      bottles: totals['bottles'] as int,
+      grams: (totals['grams'] as num).toDouble(),
+      rejected: totals['rejected'] as int,
+      monthPoints: month['mine'] as int,
+      monthTotalPoints: month['total'] as int,
+      recent: recent.map(DepositRecord.new).toList(),
+    );
   }
 
   /// Every deposit, oldest first. Pass [year] and [month] for just that month.

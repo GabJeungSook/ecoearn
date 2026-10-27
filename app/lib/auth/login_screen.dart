@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
-import '../widgets/brand.dart';
+import '../shell/window_controls.dart';
+import '../widgets/page_parts.dart';
 import 'account.dart';
 import 'auth_service.dart';
 
@@ -74,20 +75,32 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Row(
         children: [
           const Expanded(flex: 6, child: _HeroPanel()),
           Expanded(
             flex: 5,
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(40),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: _form(context),
+            child: Stack(children: [
+              Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(40),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    child: _form(context),
+                  ),
                 ),
               ),
-            ),
+              Positioned(
+                top: 20,
+                right: 20,
+                child: SquareIconButton(
+                  icon: Icons.power_settings_new,
+                  tooltip: 'Quit EcoEarn',
+                  onPressed: () => confirmQuit(context),
+                ),
+              ),
+            ]),
           ),
         ],
       ),
@@ -105,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(_setup ? 'Welcome! 👋' : 'Welcome back', style: text.headlineMedium),
+        Text(_setup ? 'Welcome' : 'Welcome back', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
         Text(
           _setup
@@ -179,52 +192,39 @@ class _HeroPanel extends StatelessWidget {
   const _HeroPanel();
 
   @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Container(
-      decoration: const BoxDecoration(gradient: EcoColors.heroGradient),
-      child: Stack(
-        children: [
-          // Soft decorative circles.
-          Positioned(top: -120, right: -80, child: _glow(360, EcoColors.mint, 0.18)),
-          Positioned(bottom: -160, left: -100, child: _glow(420, EcoColors.teal, 0.22)),
-          Padding(
-            padding: const EdgeInsets.all(56),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  const EcoLogo(size: 52),
-                  const SizedBox(width: 14),
-                  Text('EcoEarn', style: text.headlineMedium?.copyWith(color: Colors.white)),
-                ]),
-                const Spacer(),
-                Text(
-                  'Turn plastic\ninto points.',
-                  style: text.displayMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800, height: 1.1),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Plastic Waste Disposal Management System',
-                  style: text.titleMedium?.copyWith(color: Colors.white.withValues(alpha: 0.85)),
-                ),
-                const SizedBox(height: 40),
-                const _Feature(icon: Icons.contactless, text: 'Tap your ID card'),
-                const _Feature(icon: Icons.compress, text: 'Crush, drain and weigh your bottle'),
-                const _Feature(icon: Icons.stars_rounded, text: 'Earn points for approved school fines'),
-                const Spacer(),
-              ],
+  Widget build(BuildContext context) => Container(
+        color: EcoColors.emerald,
+        padding: const EdgeInsets.all(56),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+                child: const Icon(Icons.recycling, color: EcoColors.emerald, size: 30),
+              ),
+              const SizedBox(width: 14),
+              const Text('EcoEarn', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
+            ]),
+            const Spacer(),
+            const Text(
+              'Turn plastic\ninto points.',
+              style: TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.w700, height: 1.05),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static Widget _glow(double size, Color color, double alpha) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color.withValues(alpha: alpha)),
+            const SizedBox(height: 16),
+            Text(
+              'Plastic Waste Disposal Management System',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 16),
+            ),
+            const SizedBox(height: 40),
+            const _Feature(icon: Icons.contactless, text: 'Tap your ID card'),
+            const _Feature(icon: Icons.compress, text: 'Crush, drain and weigh your bottle'),
+            const _Feature(icon: Icons.stars_rounded, text: 'Earn points for approved school fines'),
+            const Spacer(),
+          ],
+        ),
       );
 }
 
@@ -241,10 +241,10 @@ class _Feature extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
+              color: Colors.white.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: EcoColors.mint),
+            child: Icon(icon, color: Colors.white),
           ),
           const SizedBox(width: 14),
           Text(text, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),

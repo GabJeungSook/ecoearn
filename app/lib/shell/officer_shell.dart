@@ -8,8 +8,9 @@ import '../reports/reports_screen.dart';
 import '../students/students_screen.dart';
 import '../widgets/stat_card.dart';
 import '../theme/app_theme.dart';
+import '../widgets/page_parts.dart';
 import 'app_sidebar.dart';
-import 'rail_footer.dart';
+import 'window_controls.dart';
 
 /// Read-only view of a data file the admin exported.
 class OfficerShell extends StatefulWidget {
@@ -64,17 +65,16 @@ class _OfficerShellState extends State<OfficerShell> {
                 AppSidebar(
                   auth: widget.auth,
                   selectedIndex: _screen,
-                  onDestinationSelected: data.hasData ? (i) => setState(() => _screen = i) : null,
-                  action: FloatingActionButton.small(
+                  onSelected: data.hasData ? (i) => setState(() => _screen = i) : null,
+                  action: SquareIconButton(
+                    icon: Icons.file_open_outlined,
                     tooltip: 'Import data file',
-                    backgroundColor: EcoColors.mint,
-                    foregroundColor: EcoColors.deepForest,
                     onPressed: _import,
-                    child: const Icon(Icons.file_open_outlined),
+                    primary: true,
                   ),
-                  destinations: const [
-                    NavigationRailDestination(icon: Icon(Icons.bar_chart_rounded), label: Text('Reports')),
-                    NavigationRailDestination(icon: Icon(Icons.people_outline), label: Text('Students')),
+                  items: const [
+                    SidebarItem(Icons.bar_chart_rounded, 'Reports'),
+                    SidebarItem(Icons.people_outline, 'Students'),
                   ],
                 ),
                 Expanded(
@@ -88,6 +88,7 @@ class _OfficerShellState extends State<OfficerShell> {
                             ReportsScreen(reports: reports, students: students, subtitle: source),
                             StudentsScreen(
                               students: students,
+                              reports: reports,
                               connection: widget.connection,
                               footer: source,
                               readOnly: true,
