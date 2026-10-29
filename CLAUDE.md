@@ -63,7 +63,7 @@ ESP32 input (never directly to the relay).
 
 ## Hardware status
 In hand (confirmed from photos 2026-10-27): ESP32 (Type-C, 30-pin, CH340 USB chip),
-MFRC522 RFID reader + blue key-fob tag, bar load cell (rating not yet checked) + HX711,
+MFRC522 RFID reader (HW-126) + white card + blue key-fob tag, 5 kg bar load cell + HX711,
 830-point breadboard, 20 cm jumper wires, Arduino Uno clone (NOT used).
 NOT in hand: microSD card module, DS3231 RTC (both needed for the offline SD log).
 
@@ -140,5 +140,10 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
        ecoearn.db for an unknown reason; persistence verified in a test, re-check by hand.
 4e. [ ] Fine deductions (needs eligible fines + points-to-peso rate from the group)
 5. [ ] After soldering: wire + test MFRC522, then HX711 (calibrate with known weights)
+       MFRC522 wiring (ESP32 left column, USB up): SDA→D5, SCK→D18, MOSI→D23,
+       MISO→D19, RST→D22, GND→GND, 3.3V→3V3, IRQ unused. Test sketch:
+       firmware/rfid_test (needs library MFRC522@1.4.12, installed). Unsoldered
+       press-fit test gave version 0x00 (no contact) → group is soldering it.
+       5 kg load cell: expect ~±1 g after averaging/calibration; fine for 1 pt / 10 g.
 6. [ ] Replace fake events with real sensor readings
 7. [ ] SD logging + RTC, LCD, then mechanism (actuator, servos, IR, lid switch)
