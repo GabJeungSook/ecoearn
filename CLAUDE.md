@@ -164,5 +164,7 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
        weight = average of 4 readings (5 samples each) within 3 g, 10 s timeout; missed HX711 reads are skipped (else reject "mechanism").
        With the fake mechanism a person puts the item on during the 6.5 s "crush/drain"
        and removes it afterwards (ESP32 waits up to 30 s, then re-zeroes if empty).
-       Not yet tested on the board.
+       2026-10-29: register-mode scan + real deposit (74 g -> 7 pts) worked on 0.2.1; then
+       "machine error" from bench noise (+/-2.5 g, wires OK). 0.2.3 (more averaging)
+       compiled but NOT yet uploaded/tested. Next: upload 0.2.3, restart app, 5-10 deposits.
 7. [ ] SD logging + RTC, LCD, then mechanism (actuator, servos, IR, lid switch)
