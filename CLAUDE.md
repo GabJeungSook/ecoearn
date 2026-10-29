@@ -142,8 +142,14 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
 5. [ ] After soldering: wire + test MFRC522, then HX711 (calibrate with known weights)
        MFRC522 wiring (ESP32 left column, USB up): SDA→D5, SCK→D18, MOSI→D23,
        MISO→D19, RST→D22, GND→GND, 3.3V→3V3, IRQ unused. Test sketch:
-       firmware/rfid_test (needs library MFRC522@1.4.12, installed). Unsoldered
-       press-fit test gave version 0x00 (no contact) → group is soldering it.
+       firmware/rfid_test (needs library MFRC522@1.4.12, installed).
+       RFID WORKS after soldering (2026-10-29): chip version 0x92, UIDs 47A87362 and
+       79EEB9A2 (white card / blue fob, which is which not recorded).
+       Note: RST on GPIO 22 = default I2C SCL; move RST when the LCD/RTC (I2C) arrive.
+       HX711 wiring: GND→GND, DT→RX2 (GPIO 16), SCK→TX2 (GPIO 17), VCC→3V3 (shared
+       with the RFID via breadboard row 17; GND via row 15). Test + calibration sketch:
+       firmware/scale_test (library "HX711 Arduino Library"@0.7.5, installed); serial
+       commands t = zero, c <grams> = calibrate; factor saved in ESP32 flash (Preferences).
        5 kg load cell: expect ~±1 g after averaging/calibration; fine for 1 pt / 10 g.
 6. [ ] Replace fake events with real sensor readings
 7. [ ] SD logging + RTC, LCD, then mechanism (actuator, servos, IR, lid switch)
