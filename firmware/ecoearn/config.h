@@ -3,7 +3,7 @@
 
 #pragma once
 
-#define FIRMWARE_VERSION "0.2.2"
+#define FIRMWARE_VERSION "0.2.3"
 
 // ---- Fake vs real hardware ----
 // 1 = use a pretend value (hardware not connected yet)
@@ -28,10 +28,12 @@
 #define BIN_FULL_PERCENT 90  // refuse new bottles at or above this fill level
 
 // ---- Scale ----
-// Calibration comes from firmware/scale_test (saved in the ESP32's flash).
-#define STABLE_GRAMS      2.0     // readings within this range count as settled (points are per 10 g)
-#define STABLE_READINGS   5       // ...for this many readings in a row
-#define WEIGH_TIMEOUT_MS  8000    // give up waiting for a settled reading
+// Calibration: "cal <grams>" command (or firmware/scale_test), saved in the ESP32's flash.
+// Measured noise on the test bench: about +/-2.5 g per 0.3 s reading.
+#define SAMPLES_PER_READING 5     // HX711 conversions averaged per reading (0.5 s)
+#define STABLE_GRAMS      3.0     // readings within this range count as settled (points are per 10 g)
+#define STABLE_READINGS   4       // ...for this many readings in a row; weight = their average
+#define WEIGH_TIMEOUT_MS  10000   // give up waiting for a settled reading
 
 // ---- Timing (milliseconds) ----
 #define DRAIN_TIME_MS      5000   // wait after crushing so liquid drains out

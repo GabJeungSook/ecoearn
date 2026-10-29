@@ -111,10 +111,11 @@ bool crushAndDrain() {
 }
 
 #if !FAKE_SCALE
-// One averaged reading in grams, or NAN if the HX711 doesn't answer.
-float readGramsOnce() {
+// One reading in grams averaged over `samples` HX711 conversions (10 per second),
+// or NAN if the HX711 doesn't answer.
+float readGramsOnce(int samples = 3) {
   if (!scale.wait_ready_timeout(500)) return NAN;
-  return (scale.read_average(3) - scale.get_offset()) / gramsFactor;
+  return (scale.read_average(samples) - scale.get_offset()) / gramsFactor;
 }
 
 // Zeroes the scale, but only if it is close to empty, so an item left on the
@@ -137,16 +138,17 @@ int readWeightGrams() {
     scaleProblem = "scale_not_calibrated";
     return -1;
   }
-  // Wait until STABLE_READINGS readings in a row stay within STABLE_GRAMS.
+  // Wait until STABLE_READINGS readings in a row stay within STABLE_GRAMS;
+  // the weight is their average. A reading the HX711 misses (e.g. a wire
+  // flickering) is skipped rather than failing the whole weighing.
   float recent[STABLE_READINGS];
   int count = 0;
+  bool answered = false;
   unsigned long start = millis();
   while (millis() - start < WEIGH_TIMEOUT_MS) {
-    float grams = readGramsOnce();
-    if (isnan(grams)) {
-      scaleProblem = "scale_not_answering";
-      return -1;
-    }
+    float grams = readGramsOnce(SAMPLES_PER_READING);
+    if (isnan(grams)) continue;
+    answered = true;
     recent[count % STABLE_READINGS] = grams;
     count++;
     if (count < STABLE_READINGS) continue;
@@ -159,7 +161,7 @@ int readWeightGrams() {
     }
     if (high - low <= STABLE_GRAMS) return lround(sum / STABLE_READINGS);
   }
-  scaleProblem = "scale_unsettled";
+  scaleProblem = answered ? "scale_unsettled" : "scale_not_answering";
   return -1;
 #endif
 }
