@@ -41,11 +41,15 @@ Research objectives the system must satisfy:
 {"event":"weight","uid":"A3F29B11","grams":18,"points":2}
 {"event":"reject","uid":"A3F29B11","reason":"too_heavy","grams":120}
 {"event":"bin","level":64}
+{"event":"scan","uid":"47A87362"}
 ```
 Reject reasons: `bin_full`, `mechanism`, `no_item`, `too_heavy` (no points awarded).
 The laptop must ignore any line that isn't valid JSON (the ESP32 prints its own
-startup text after every reset).
-Laptop → ESP32 commands are also one line each (e.g. calibration). Not finalized.
+startup text after every reset). Firmware hint lines for people start with "# ".
+Laptop → ESP32 commands, plain text, one per line:
+- `register`: the next card tap sends `scan` (no deposit); ends after one card or 30 s.
+  Used by the Students screen's "Scan card".
+- `cancel`: leave register mode. `tare`: zero the scale.
 
 ## Mechanism (crush → drain → weigh)
 1. RFID tap
@@ -146,10 +150,16 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
        RFID WORKS after soldering (2026-10-29): chip version 0x92, UIDs 47A87362 and
        79EEB9A2 (white card / blue fob, which is which not recorded).
        Note: RST on GPIO 22 = default I2C SCL; move RST when the LCD/RTC (I2C) arrive.
-       HX711 wiring: GND→GND, DT→RX2 (GPIO 16), SCK→TX2 (GPIO 17), VCC→3V3 (shared
+       HX711 wiring: GND→GND, DT→D16, SCK→D17 (labelled RX2/TX2 on some boards), VCC→3V3 (shared
        with the RFID via breadboard row 17; GND via row 15). Test + calibration sketch:
        firmware/scale_test (library "HX711 Arduino Library"@0.7.5, installed); serial
        commands t = zero, c <grams> = calibrate; factor saved in ESP32 flash (Preferences).
        5 kg load cell: expect ~±1 g after averaging/calibration; fine for 1 pt / 10 g.
-6. [ ] Replace fake events with real sensor readings
+6. [~] Replace fake events with real sensor readings
+       Firmware 0.2.0: FAKE_RFID 0 + FAKE_SCALE 0 (real reader + load cell), mechanism and
+       bin level still faked. Scale factor is read from flash (saved by scale_test);
+       weight = 5 readings within 1 g, 8 s timeout (else reject "mechanism").
+       With the fake mechanism a person puts the item on during the 6.5 s "crush/drain"
+       and removes it afterwards (ESP32 waits up to 30 s, then re-zeroes if empty).
+       Not yet tested on the board.
 7. [ ] SD logging + RTC, LCD, then mechanism (actuator, servos, IR, lid switch)

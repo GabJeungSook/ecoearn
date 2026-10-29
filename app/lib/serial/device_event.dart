@@ -25,6 +25,8 @@ sealed class DeviceEvent {
         BootEvent(version: version, receivedAt: receivedAt),
       {'event': 'card', 'uid': String uid} =>
         CardEvent(uid: uid, receivedAt: receivedAt),
+      {'event': 'scan', 'uid': String uid} =>
+        ScanEvent(uid: uid, receivedAt: receivedAt),
       {'event': 'weight', 'uid': String uid, 'grams': num grams, 'points': int points} =>
         WeightEvent(uid: uid, grams: grams.toDouble(), points: points, receivedAt: receivedAt),
       {'event': 'reject', 'uid': String uid, 'reason': String reason, 'grams': num grams} =>
@@ -47,6 +49,13 @@ class BootEvent extends DeviceEvent {
 /// A student tapped their RFID card; a bottle is now being processed.
 class CardEvent extends DeviceEvent {
   CardEvent({required this.uid, super.receivedAt});
+  final String uid;
+}
+
+/// A card was read in register mode (after the laptop sent `register`):
+/// no bottle is processed, the UID is only for assigning the card to a student.
+class ScanEvent extends DeviceEvent {
+  ScanEvent({required this.uid, super.receivedAt});
   final String uid;
 }
 

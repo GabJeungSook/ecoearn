@@ -10,7 +10,7 @@ class CardBeeper {
   CardBeeper(Stream<DeviceEvent> events) {
     _player.setReleaseMode(ReleaseMode.stop);
     _subscription = events.listen((event) {
-      if (event is CardEvent) unawaited(_beep());
+      if (event is CardEvent || event is ScanEvent) unawaited(_beep());
     });
   }
 

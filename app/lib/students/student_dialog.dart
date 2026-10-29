@@ -41,11 +41,17 @@ class _StudentDialogState extends State<StudentDialog> {
 
   bool get _scanning => _scan != null;
 
+  // Register mode makes the ESP32 report the next tap as a ScanEvent instead of
+  // starting a deposit; it leaves register mode after one card or 30 seconds.
   void _startScan() {
+    if (!widget.connection.send('register')) {
+      setState(() => _error = 'Could not talk to the ESP32. Check the connection on the Live screen.');
+      return;
+    }
     _scan = widget.connection.events.listen((event) {
-      if (event is CardEvent) {
+      if (event is ScanEvent) {
         _uid.text = event.uid;
-        _stopScan();
+        _stopScan(cardRead: true);
       }
     });
     _scanTimer = Timer(_scanTimeout, () {
@@ -55,7 +61,8 @@ class _StudentDialogState extends State<StudentDialog> {
     setState(() => _error = null);
   }
 
-  void _stopScan() {
+  void _stopScan({bool cardRead = false}) {
+    if (_scanning && !cardRead) widget.connection.send('cancel');
     _scan?.cancel();
     _scan = null;
     _scanTimer?.cancel();
@@ -93,6 +100,7 @@ class _StudentDialogState extends State<StudentDialog> {
 
   @override
   void dispose() {
+    if (_scanning) widget.connection.send('cancel');
     _scan?.cancel();
     _scanTimer?.cancel();
     _studentNo.dispose();
@@ -147,7 +155,7 @@ class _StudentDialogState extends State<StudentDialog> {
                 const SizedBox(width: 12),
                 if (_scanning)
                   OutlinedButton.icon(
-                    onPressed: _stopScan,
+                    onPressed: () => _stopScan(),
                     icon: const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)),
                     label: const Text('Cancel'),
                   )

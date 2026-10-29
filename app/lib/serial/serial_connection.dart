@@ -98,6 +98,19 @@ class SerialConnection extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Sends one command line to the ESP32, e.g. `register`. Returns false if
+  /// not connected or the write failed.
+  bool send(String command) {
+    final port = _port;
+    if (port == null) return false;
+    try {
+      final bytes = Uint8List.fromList(utf8.encode('$command\n'));
+      return port.write(bytes, timeout: 500) == bytes.length;
+    } on SerialPortError {
+      return false;
+    }
+  }
+
   void _onLine(String line) {
     final event = DeviceEvent.tryParse(line);
     if (event != null) _events.add(event);

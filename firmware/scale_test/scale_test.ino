@@ -7,7 +7,7 @@
 // The calibration is saved in the ESP32's flash, so it survives a restart.
 //
 // Wiring (ESP32 30-pin board):
-//   HX711 GND -> GND   DT -> RX2 (GPIO 16)   SCK -> TX2 (GPIO 17)   VCC -> 3V3
+//   HX711 GND -> GND   DT -> D16   SCK -> D17   (labelled RX2/TX2 on some boards)   VCC -> 3V3
 //   Load cell -> HX711: red E+, black E-, white A-, green A+
 
 #include <HX711.h>
@@ -59,7 +59,7 @@ void setup() {
 
   Serial.println();
   if (!scale.wait_ready_timeout(2000)) {
-    Serial.println("HX711 NOT answering. Check the 4 wires (GND, DT->RX2, SCK->TX2, VCC->3V3).");
+    Serial.println("HX711 NOT answering. Check the 4 wires (GND, DT->D16, SCK->D17, VCC->3V3).");
   } else {
     Serial.println("HX711 found. Keep the scale empty while it zeroes...");
     zero();

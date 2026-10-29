@@ -3,8 +3,29 @@
 // One transaction: card tap -> crush + drain -> weigh -> points -> into bin.
 // Every message to the laptop is one JSON object on its own line.
 // Hardware that isn't connected yet is faked (see the FAKE_ switches in config.h).
+// Lines starting with "# " are hints for a person reading the Serial Monitor;
+// the laptop app ignores them because they aren't JSON.
+//
+// Commands from the laptop (one per line):
+//   register   report the next card tap as a "scan" event instead of starting a
+//              deposit (for assigning cards to students); ends after one card or 30 s
+//   cancel     leave register mode
+//   tare       zero the scale (it must be empty)
 
 #include "config.h"
+
+#if !FAKE_RFID
+#include <SPI.h>
+#include <MFRC522.h>
+MFRC522 rfid(RFID_SDA_PIN, RFID_RST_PIN);
+#endif
+
+#if !FAKE_SCALE
+#include <HX711.h>
+#include <Preferences.h>
+HX711 scale;
+float gramsFactor = 0;   // raw counts per gram, from firmware/scale_test; 0 = not calibrated
+#endif
 
 // Pretend student cards, used while FAKE_RFID is 1.
 const char* FAKE_UIDS[] = { "A3F29B11", "5C7E0D42", "91B4E6F3" };
@@ -12,6 +33,9 @@ const int FAKE_UID_COUNT = sizeof(FAKE_UIDS) / sizeof(FAKE_UIDS[0]);
 
 unsigned long lastFakeTap = 0;   // used while FAKE_RFID is 1
 int fakeBinLevel = 10;           // percent, used while FAKE_BIN_LEVEL is 1
+
+bool registerMode = false;       // next card tap is only read, not a deposit
+unsigned long registerStarted = 0;
 
 // ---------- Messages to the laptop ----------
 
@@ -21,6 +45,10 @@ void sendBoot() {
 
 void sendCard(const String& uid) {
   Serial.printf("{\"event\":\"card\",\"uid\":\"%s\"}\n", uid.c_str());
+}
+
+void sendScan(const String& uid) {
+  Serial.printf("{\"event\":\"scan\",\"uid\":\"%s\"}\n", uid.c_str());
 }
 
 void sendWeight(const String& uid, int grams, int points) {
@@ -47,7 +75,15 @@ String readCard() {
   lastFakeTap = millis();
   return FAKE_UIDS[random(FAKE_UID_COUNT)];
 #else
-  #error "Real RFID reader is not written yet. Set FAKE_RFID to 1 in config.h."
+  if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) return "";
+  String uid;
+  for (byte i = 0; i < rfid.uid.size; i++) {
+    char hex[3];
+    sprintf(hex, "%02X", rfid.uid.uidByte[i]);
+    uid += hex;
+  }
+  rfid.PICC_HaltA();   // the same card must be taken away and tapped again
+  return uid;
 #endif
 }
 
@@ -55,6 +91,9 @@ String readCard() {
 // Returns false if something went wrong (lid opened, motion timed out).
 bool crushAndDrain() {
 #if FAKE_MECHANISM
+#if !FAKE_SCALE
+  Serial.println("# Put the item on the scale now.");
+#endif
   delay(1500);            // pretend: actuator extends and retracts
   delay(DRAIN_TIME_MS);   // liquid drains (same wait the real machine uses)
   delay(500);             // pretend: trapdoor drops bottle onto the scale
@@ -64,20 +103,68 @@ bool crushAndDrain() {
 #endif
 }
 
+#if !FAKE_SCALE
+// One averaged reading in grams, or NAN if the HX711 doesn't answer.
+float readGramsOnce() {
+  if (!scale.wait_ready_timeout(500)) return NAN;
+  return (scale.read_average(3) - scale.get_offset()) / gramsFactor;
+}
+
+// Zeroes the scale, but only if it is close to empty, so an item left on the
+// tray isn't zeroed away.
+void rezeroIfEmpty() {
+  float grams = readGramsOnce();
+  if (!isnan(grams) && fabs(grams) < MIN_ITEM_GRAMS) scale.tare(10);
+}
+#endif
+
 // Mechanism step 6: stable weight of the crushed bottle, in grams.
+// Returns -1 if the scale can't give a settled reading (not calibrated,
+// not answering, or the tray keeps moving).
 int readWeightGrams() {
 #if FAKE_SCALE
   if (random(8) == 0) return random(90, 150);   // now and then, a too-heavy item
   return random(12, 45);                        // typical crushed bottle
 #else
-  #error "Real scale is not written yet. Set FAKE_SCALE to 1 in config.h."
+  if (gramsFactor == 0) return -1;
+  // Wait until STABLE_READINGS readings in a row stay within STABLE_GRAMS.
+  float recent[STABLE_READINGS];
+  int count = 0;
+  unsigned long start = millis();
+  while (millis() - start < WEIGH_TIMEOUT_MS) {
+    float grams = readGramsOnce();
+    if (isnan(grams)) return -1;
+    recent[count % STABLE_READINGS] = grams;
+    count++;
+    if (count < STABLE_READINGS) continue;
+
+    float low = recent[0], high = recent[0], sum = 0;
+    for (float g : recent) {
+      low = min(low, g);
+      high = max(high, g);
+      sum += g;
+    }
+    if (high - low <= STABLE_GRAMS) return lround(sum / STABLE_READINGS);
+  }
+  return -1;
 #endif
 }
 
 // Mechanism step 8: tray tilts the bottle into the storage bin, scale re-zeroes.
 void tipIntoBin() {
 #if FAKE_MECHANISM
+#if FAKE_SCALE
   delay(500);
+#else
+  // No tray servo yet: wait for a person to take the item off.
+  Serial.println("# Take the item off the scale.");
+  unsigned long start = millis();
+  while (millis() - start < REMOVE_ITEM_MS) {
+    float grams = readGramsOnce();
+    if (!isnan(grams) && grams < MIN_ITEM_GRAMS) break;
+  }
+  rezeroIfEmpty();
+#endif
 #if FAKE_BIN_LEVEL
   fakeBinLevel += random(4, 9);
 #endif
@@ -118,7 +205,9 @@ void runTransaction(const String& uid) {
   }
 
   int grams = readWeightGrams();
-  if (grams < MIN_ITEM_GRAMS) {
+  if (grams < 0) {
+    sendReject(uid, "mechanism", 0);   // scale not calibrated / not answering / unsettled
+  } else if (grams < MIN_ITEM_GRAMS) {
     sendReject(uid, "no_item", grams);
   } else if (grams > MAX_ITEM_GRAMS) {
     sendReject(uid, "too_heavy", grams);   // no points; the item still goes to the bin
@@ -130,18 +219,71 @@ void runTransaction(const String& uid) {
   sendBin(readBinLevel());
 }
 
+// ---------- Commands from the laptop ----------
+
+void handleCommand(String line) {
+  line.trim();
+  if (line == "register") {
+    registerMode = true;
+    registerStarted = millis();
+    Serial.println("# Register mode: tap a card to read it (no deposit).");
+  } else if (line == "cancel") {
+    registerMode = false;
+  } else if (line == "tare") {
+#if !FAKE_SCALE
+    scale.tare(20);
+    Serial.println("# Scale zeroed.");
+#endif
+  } else if (line.length() > 0) {
+    Serial.println("# Unknown command. Commands: register, cancel, tare");
+  }
+}
+
 // ---------- Arduino entry points ----------
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
+  Serial.setTimeout(100);
   pinMode(STATUS_LED_PIN, OUTPUT);
   delay(500);   // let the laptop's Serial Monitor catch up after a restart
+
+#if !FAKE_RFID
+  SPI.begin();
+  rfid.PCD_Init();
+  byte version = rfid.PCD_ReadRegister(MFRC522::VersionReg);
+  if (version == 0x00 || version == 0xFF) Serial.println("# RFID reader NOT answering. Check its wires.");
+#endif
+
+#if !FAKE_SCALE
+  scale.begin(HX711_DT_PIN, HX711_SCK_PIN);
+  Preferences settings;
+  settings.begin("scale", true);   // same place firmware/scale_test saves it
+  gramsFactor = settings.getFloat("factor", 0);
+  settings.end();
+  if (gramsFactor == 0) {
+    Serial.println("# Scale NOT calibrated. Upload firmware/scale_test and calibrate first.");
+  } else if (!scale.wait_ready_timeout(2000)) {
+    Serial.println("# HX711 NOT answering. Check its wires.");
+  } else {
+    scale.tare(20);   // the tray must be empty at startup
+  }
+#endif
+
   sendBoot();
 }
 
 void loop() {
+  if (Serial.available()) handleCommand(Serial.readStringUntil('\n'));
+  if (registerMode && millis() - registerStarted > REGISTER_MODE_MS) registerMode = false;
+
   String uid = readCard();
   if (uid == "") return;
+
+  if (registerMode) {
+    registerMode = false;
+    sendScan(uid);
+    return;
+  }
 
   sendCard(uid);
   digitalWrite(STATUS_LED_PIN, HIGH);

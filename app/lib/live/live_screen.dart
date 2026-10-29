@@ -27,6 +27,7 @@ String _plainUid(String uid) => uid;
 String describeEvent(DeviceEvent event, [String Function(String uid) who = _plainUid]) => switch (event) {
       BootEvent(:final version) => 'ESP32 started (firmware $version)',
       CardEvent(:final uid) => 'Card tapped: ${who(uid)}',
+      ScanEvent(:final uid) => 'Card read for registration: ${who(uid)}',
       WeightEvent(:final uid, :final grams, :final points) =>
         'Deposit: ${who(uid)}, ${_grams(grams)} → $points ${points == 1 ? 'point' : 'points'}',
       RejectEvent(:final uid, :final reason, :final grams) =>
@@ -39,6 +40,7 @@ String describeEvent(DeviceEvent event, [String Function(String uid) who = _plai
 IconData _icon(DeviceEvent event) => switch (event) {
       BootEvent() => Icons.power_settings_new,
       CardEvent() => Icons.contactless,
+      ScanEvent() => Icons.badge_outlined,
       WeightEvent() => Icons.scale,
       RejectEvent() => Icons.block,
       BinEvent() => Icons.delete_outline,
@@ -47,7 +49,7 @@ IconData _icon(DeviceEvent event) => switch (event) {
 
 Color _eventColor(DeviceEvent event) => switch (event) {
       BootEvent() => EcoColors.muted,
-      CardEvent() => EcoColors.sky,
+      CardEvent() || ScanEvent() => EcoColors.sky,
       WeightEvent() => EcoColors.emerald,
       RejectEvent() => EcoColors.coral,
       BinEvent() => EcoColors.amber,

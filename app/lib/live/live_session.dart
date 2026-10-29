@@ -55,7 +55,7 @@ class LiveSession extends ChangeNotifier {
         rejects++;
       case BinEvent(:final level):
         binLevel = level;
-      case UnknownEvent():
+      case ScanEvent() || UnknownEvent():
         break;
     }
     notifyListeners();

@@ -9,6 +9,8 @@ void main() {
           isA<BootEvent>().having((e) => e.version, 'version', '0.1.0'));
       expect(DeviceEvent.tryParse('{"event":"card","uid":"A3F29B11"}'),
           isA<CardEvent>().having((e) => e.uid, 'uid', 'A3F29B11'));
+      expect(DeviceEvent.tryParse('{"event":"scan","uid":"47A87362"}'),
+          isA<ScanEvent>().having((e) => e.uid, 'uid', '47A87362'));
       expect(
           DeviceEvent.tryParse('{"event":"weight","uid":"A3F29B11","grams":39,"points":3}'),
           isA<WeightEvent>()
@@ -29,6 +31,7 @@ void main() {
     test('ignores ESP32 startup text and garbled bytes', () {
       expect(DeviceEvent.tryParse('ets Jul 29 2019 12:21:46'), isNull);
       expect(DeviceEvent.tryParse('rst:0x1 (POWERON_RESET),boot:0x13'), isNull);
+      expect(DeviceEvent.tryParse('# Put the item on the scale now.'), isNull);
       expect(DeviceEvent.tryParse('���'), isNull);
       expect(DeviceEvent.tryParse('{"event":"card","uid":'), isNull);
       expect(DeviceEvent.tryParse(''), isNull);
