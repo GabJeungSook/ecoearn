@@ -16,6 +16,12 @@ const _rejectLabels = {
   'too_heavy': 'too heavy',
 };
 
+const _detailLabels = {
+  'scale_not_calibrated': 'scale not calibrated',
+  'scale_not_answering': 'scale not answering, check the HX711 wires',
+  'scale_unsettled': 'weight never settled, keep hands off the scale',
+};
+
 String _grams(double g) => g == g.roundToDouble() ? '${g.toInt()} g' : '${g.toStringAsFixed(1)} g';
 
 String _time(DateTime t) =>
@@ -30,8 +36,9 @@ String describeEvent(DeviceEvent event, [String Function(String uid) who = _plai
       ScanEvent(:final uid) => 'Card read for registration: ${who(uid)}',
       WeightEvent(:final uid, :final grams, :final points) =>
         'Deposit: ${who(uid)}, ${_grams(grams)} → $points ${points == 1 ? 'point' : 'points'}',
-      RejectEvent(:final uid, :final reason, :final grams) =>
+      RejectEvent(:final uid, :final reason, :final grams, :final detail) =>
         'Rejected: ${who(uid)}, ${_rejectLabels[reason] ?? reason}'
+            '${detail == null ? '' : ' (${_detailLabels[detail] ?? detail})'}'
             '${grams > 0 ? ' (${_grams(grams)})' : ''}',
       BinEvent(:final level) => 'Bin level: $level%',
       UnknownEvent(:final raw) => 'Unrecognized message: $raw',

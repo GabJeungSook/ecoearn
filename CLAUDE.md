@@ -50,6 +50,9 @@ Laptop → ESP32 commands, plain text, one per line:
 - `register`: the next card tap sends `scan` (no deposit); ends after one card or 30 s.
   Used by the Students screen's "Scan card".
 - `cancel`: leave register mode. `tare`: zero the scale.
+- `cal 74`: calibrate with a known weight (tare first); saved in flash. `weigh`: print grams.
+Reject events may carry `"detail"` (`scale_not_calibrated`, `scale_not_answering`,
+`scale_unsettled`) to explain a `mechanism` reject.
 
 ## Mechanism (crush → drain → weigh)
 1. RFID tap

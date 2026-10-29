@@ -11,6 +11,8 @@
 //              deposit (for assigning cards to students); ends after one card or 30 s
 //   cancel     leave register mode
 //   tare       zero the scale (it must be empty)
+//   cal 74     calibrate: tare first, put a known weight on, then cal <its grams>
+//   weigh      print the current weight (to check the calibration)
 
 #include "config.h"
 
@@ -24,8 +26,10 @@ MFRC522 rfid(RFID_SDA_PIN, RFID_RST_PIN);
 #include <HX711.h>
 #include <Preferences.h>
 HX711 scale;
-float gramsFactor = 0;   // raw counts per gram, from firmware/scale_test; 0 = not calibrated
+float gramsFactor = 0;   // raw counts per gram (saved by "cal" or scale_test); 0 = not calibrated
 #endif
+
+const char* scaleProblem = nullptr;   // why readWeightGrams() last returned -1
 
 // Pretend student cards, used while FAKE_RFID is 1.
 const char* FAKE_UIDS[] = { "A3F29B11", "5C7E0D42", "91B4E6F3" };
@@ -57,9 +61,12 @@ void sendWeight(const String& uid, int grams, int points) {
 }
 
 // reason: "bin_full", "mechanism", "no_item" or "too_heavy"
-void sendReject(const String& uid, const char* reason, int grams) {
-  Serial.printf("{\"event\":\"reject\",\"uid\":\"%s\",\"reason\":\"%s\",\"grams\":%d}\n",
+// detail (optional) says more about a "mechanism" reject, e.g. "scale_not_calibrated".
+void sendReject(const String& uid, const char* reason, int grams, const char* detail = nullptr) {
+  Serial.printf("{\"event\":\"reject\",\"uid\":\"%s\",\"reason\":\"%s\",\"grams\":%d",
                 uid.c_str(), reason, grams);
+  if (detail) Serial.printf(",\"detail\":\"%s\"", detail);
+  Serial.println("}");
 }
 
 void sendBin(int level) {
@@ -126,14 +133,20 @@ int readWeightGrams() {
   if (random(8) == 0) return random(90, 150);   // now and then, a too-heavy item
   return random(12, 45);                        // typical crushed bottle
 #else
-  if (gramsFactor == 0) return -1;
+  if (gramsFactor == 0) {
+    scaleProblem = "scale_not_calibrated";
+    return -1;
+  }
   // Wait until STABLE_READINGS readings in a row stay within STABLE_GRAMS.
   float recent[STABLE_READINGS];
   int count = 0;
   unsigned long start = millis();
   while (millis() - start < WEIGH_TIMEOUT_MS) {
     float grams = readGramsOnce();
-    if (isnan(grams)) return -1;
+    if (isnan(grams)) {
+      scaleProblem = "scale_not_answering";
+      return -1;
+    }
     recent[count % STABLE_READINGS] = grams;
     count++;
     if (count < STABLE_READINGS) continue;
@@ -146,6 +159,7 @@ int readWeightGrams() {
     }
     if (high - low <= STABLE_GRAMS) return lround(sum / STABLE_READINGS);
   }
+  scaleProblem = "scale_unsettled";
   return -1;
 #endif
 }
@@ -206,7 +220,7 @@ void runTransaction(const String& uid) {
 
   int grams = readWeightGrams();
   if (grams < 0) {
-    sendReject(uid, "mechanism", 0);   // scale not calibrated / not answering / unsettled
+    sendReject(uid, "mechanism", 0, scaleProblem);
   } else if (grams < MIN_ITEM_GRAMS) {
     sendReject(uid, "no_item", grams);
   } else if (grams > MAX_ITEM_GRAMS) {
@@ -221,6 +235,23 @@ void runTransaction(const String& uid) {
 
 // ---------- Commands from the laptop ----------
 
+#if !FAKE_SCALE
+// Known weight on an already-zeroed scale -> counts per gram, saved in flash.
+void calibrate(float knownGrams) {
+  long counts = scale.read_average(20) - scale.get_offset();
+  if (knownGrams <= 0 || labs(counts) < 1000) {
+    Serial.println("# Calibration failed: tare with the scale empty, put the weight on, then cal <grams>");
+    return;
+  }
+  gramsFactor = counts / knownGrams;
+  Preferences settings;
+  settings.begin("scale");   // same place firmware/scale_test saves it
+  settings.putFloat("factor", gramsFactor);
+  settings.end();
+  Serial.printf("# Calibrated and saved: %.2f counts per gram.\n", gramsFactor);
+}
+#endif
+
 void handleCommand(String line) {
   line.trim();
   if (line == "register") {
@@ -234,8 +265,17 @@ void handleCommand(String line) {
     scale.tare(20);
     Serial.println("# Scale zeroed.");
 #endif
+  } else if (line.startsWith("cal ")) {
+#if !FAKE_SCALE
+    calibrate(line.substring(4).toFloat());
+#endif
+  } else if (line == "weigh") {
+#if !FAKE_SCALE
+    if (gramsFactor == 0) Serial.println("# Scale not calibrated: tare, put a known weight on, then cal <grams>");
+    else Serial.printf("# Weight: %.1f g\n", readGramsOnce());
+#endif
   } else if (line.length() > 0) {
-    Serial.println("# Unknown command. Commands: register, cancel, tare");
+    Serial.println("# Unknown command. Commands: register, cancel, tare, cal <grams>, weigh");
   }
 }
 

@@ -30,7 +30,13 @@ sealed class DeviceEvent {
       {'event': 'weight', 'uid': String uid, 'grams': num grams, 'points': int points} =>
         WeightEvent(uid: uid, grams: grams.toDouble(), points: points, receivedAt: receivedAt),
       {'event': 'reject', 'uid': String uid, 'reason': String reason, 'grams': num grams} =>
-        RejectEvent(uid: uid, reason: reason, grams: grams.toDouble(), receivedAt: receivedAt),
+        RejectEvent(
+          uid: uid,
+          reason: reason,
+          grams: grams.toDouble(),
+          detail: decoded['detail'] is String ? decoded['detail'] as String : null,
+          receivedAt: receivedAt,
+        ),
       {'event': 'bin', 'level': int level} =>
         BinEvent(level: level, receivedAt: receivedAt),
       {'event': String name} =>
@@ -68,12 +74,14 @@ class WeightEvent extends DeviceEvent {
 }
 
 /// A deposit earned no points. [reason] is one of the firmware's reject codes:
-/// `bin_full`, `mechanism`, `no_item`, `too_heavy`.
+/// `bin_full`, `mechanism`, `no_item`, `too_heavy`. [detail] optionally says
+/// more, e.g. `scale_not_calibrated` for a `mechanism` reject.
 class RejectEvent extends DeviceEvent {
-  RejectEvent({required this.uid, required this.reason, required this.grams, super.receivedAt});
+  RejectEvent({required this.uid, required this.reason, required this.grams, this.detail, super.receivedAt});
   final String uid;
   final String reason;
   final double grams;
+  final String? detail;
 }
 
 /// Storage bin fill level, 0-100 percent.

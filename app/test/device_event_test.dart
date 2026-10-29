@@ -18,7 +18,11 @@ void main() {
               .having((e) => e.points, 'points', 3));
       expect(
           DeviceEvent.tryParse('{"event":"reject","uid":"A3F29B11","reason":"too_heavy","grams":120}'),
-          isA<RejectEvent>().having((e) => e.reason, 'reason', 'too_heavy'));
+          isA<RejectEvent>().having((e) => e.reason, 'reason', 'too_heavy').having((e) => e.detail, 'detail', null));
+      expect(
+          DeviceEvent.tryParse(
+              '{"event":"reject","uid":"A3F29B11","reason":"mechanism","grams":0,"detail":"scale_not_calibrated"}'),
+          isA<RejectEvent>().having((e) => e.detail, 'detail', 'scale_not_calibrated'));
       expect(DeviceEvent.tryParse('{"event":"bin","level":64}'),
           isA<BinEvent>().having((e) => e.level, 'level', 64));
     });

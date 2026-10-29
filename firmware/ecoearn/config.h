@@ -3,7 +3,7 @@
 
 #pragma once
 
-#define FIRMWARE_VERSION "0.2.0"
+#define FIRMWARE_VERSION "0.2.1"
 
 // ---- Fake vs real hardware ----
 // 1 = use a pretend value (hardware not connected yet)
