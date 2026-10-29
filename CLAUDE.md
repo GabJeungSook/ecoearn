@@ -161,7 +161,7 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
 6. [~] Replace fake events with real sensor readings
        Firmware 0.2.0: FAKE_RFID 0 + FAKE_SCALE 0 (real reader + load cell), mechanism and
        bin level still faked. Scale factor is read from flash (saved by scale_test);
-       weight = 5 readings within 1 g, 8 s timeout (else reject "mechanism").
+       weight = 5 readings within 2 g, 8 s timeout (else reject "mechanism").
        With the fake mechanism a person puts the item on during the 6.5 s "crush/drain"
        and removes it afterwards (ESP32 waits up to 30 s, then re-zeroes if empty).
        Not yet tested on the board.

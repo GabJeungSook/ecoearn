@@ -3,7 +3,7 @@
 
 #pragma once
 
-#define FIRMWARE_VERSION "0.2.1"
+#define FIRMWARE_VERSION "0.2.2"
 
 // ---- Fake vs real hardware ----
 // 1 = use a pretend value (hardware not connected yet)
@@ -29,7 +29,7 @@
 
 // ---- Scale ----
 // Calibration comes from firmware/scale_test (saved in the ESP32's flash).
-#define STABLE_GRAMS      1.0     // readings within this range count as settled
+#define STABLE_GRAMS      2.0     // readings within this range count as settled (points are per 10 g)
 #define STABLE_READINGS   5       // ...for this many readings in a row
 #define WEIGH_TIMEOUT_MS  8000    // give up waiting for a settled reading
 
