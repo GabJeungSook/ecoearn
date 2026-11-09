@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
@@ -10,7 +11,10 @@ import '../live/live_session.dart';
 import '../serial/device_event.dart';
 import '../serial/serial_connection.dart';
 import '../theme/app_theme.dart';
+import '../widgets/backdrop.dart';
 import '../widgets/brand.dart';
+import '../widgets/motion.dart';
+import '../widgets/page_parts.dart';
 import '../widgets/stat_card.dart';
 
 /// Display account: a big, student-facing screen locked in fullscreen. It
@@ -49,6 +53,10 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
   List<MonthlyRow> _month = const [];
   bool _unlocking = false;
 
+  // When the current card tap started, to show the processing stages.
+  String? _processingUid;
+  DateTime _processingSince = DateTime.now();
+
   @override
   void initState() {
     super.initState();
@@ -59,6 +67,7 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
     _reconnect = Timer.periodic(_reconnectEvery, (_) => _connectIfNeeded());
     _clock = Timer.periodic(const Duration(seconds: 1), (_) => setState(() => _now = DateTime.now()));
     widget.students.addListener(_loadTotals); // reloaded after every saved deposit
+    widget.session.addListener(_onSession);
     _loadTotals();
   }
 
@@ -67,9 +76,18 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
     _reconnect.cancel();
     _clock.cancel();
     widget.students.removeListener(_loadTotals);
+    widget.session.removeListener(_onSession);
     windowManager.removeListener(this);
     windowManager.setPreventClose(false);
     super.dispose();
+  }
+
+  void _onSession() {
+    final uid = widget.session.processingUid;
+    if (uid != _processingUid) {
+      _processingUid = uid;
+      _processingSince = DateTime.now();
+    }
   }
 
   Future<void> _loadTotals() async {
@@ -119,28 +137,34 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
           listenable: Listenable.merge([widget.connection, widget.session, widget.students]),
           builder: (context, _) => Column(
             children: [
-              _topBar(context),
+              FadeSlideIn(offset: const Offset(0, -12), child: _topBar(context)),
               const SizedBox(height: 24),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(child: _KioskCard(padding: const EdgeInsets.all(40), child: _hero(context))),
+                    Expanded(child: FadeSlideIn(delay: const Duration(milliseconds: 100), child: _heroPanel(context))),
                     const SizedBox(width: 24),
                     SizedBox(
-                      width: 400,
+                      width: 420,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           IntrinsicHeight(
                             child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                              Expanded(child: _binCard(context)),
+                              Expanded(
+                                child: FadeSlideIn(delay: const Duration(milliseconds: 200), child: _binCard(context)),
+                              ),
                               const SizedBox(width: 16),
-                              Expanded(child: _todayCard(context)),
+                              Expanded(
+                                child: FadeSlideIn(delay: const Duration(milliseconds: 280), child: _todayCard(context)),
+                              ),
                             ]),
                           ),
                           const SizedBox(height: 16),
-                          Expanded(child: _leaderboard(context)),
+                          Expanded(
+                            child: FadeSlideIn(delay: const Duration(milliseconds: 360), child: _leaderboard(context)),
+                          ),
                         ],
                       ),
                     ),
@@ -157,48 +181,51 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
   Widget _topBar(BuildContext context) {
     final connected = widget.connection.isConnected;
     final hour = _now.hour % 12 == 0 ? 12 : _now.hour % 12;
-    final time = '$hour:${_now.minute.toString().padLeft(2, '0')} ${_now.hour < 12 ? 'AM' : 'PM'}';
+    final time = '$hour:${_now.minute.toString().padLeft(2, '0')}';
     final date = '${_weekdays[_now.weekday - 1]}, ${monthNames[_now.month - 1]} ${_now.day}';
 
     return Row(
       children: [
-        const EcoLogo(size: 56),
+        const EcoLogo(size: 52),
         const SizedBox(width: 16),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('EcoEarn', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
-          const Text('Recycle plastic bottles, earn points', style: TextStyle(color: EcoColors.muted)),
+        const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('EcoEarn', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+          Text('Recycle plastic bottles, earn points', style: TextStyle(color: EcoColors.muted, fontSize: 14)),
         ]),
         const Spacer(),
+        _StatusPill(connected: connected),
+        const SizedBox(width: 28),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text(time, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
-          Text(date, style: const TextStyle(color: EcoColors.muted)),
-        ]),
-        const SizedBox(width: 24),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: EcoColors.line),
-            borderRadius: BorderRadius.circular(30),
+          Text.rich(
+            TextSpan(children: [
+              TextSpan(text: time),
+              TextSpan(
+                text: _now.hour < 12 ? ' AM' : ' PM',
+                style: const TextStyle(fontSize: 16, color: EcoColors.muted, fontWeight: FontWeight.w600),
+              ),
+            ]),
+            style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: -0.5),
           ),
-          child: Row(children: [
-            Icon(Icons.circle, size: 10, color: connected ? EcoColors.emerald : EcoColors.amber),
-            const SizedBox(width: 8),
-            Text(connected ? 'Machine ready' : 'Connecting…',
-                style: const TextStyle(fontWeight: FontWeight.w600)),
-          ]),
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          tooltip: 'Exit display mode',
-          onPressed: _unlock,
-          icon: const Icon(Icons.lock_outline, color: EcoColors.muted),
-        ),
+          Text(date, style: const TextStyle(color: EcoColors.muted, fontSize: 14)),
+        ]),
+        const SizedBox(width: 16),
+        SquareIconButton(icon: Icons.lock_outline, tooltip: 'Exit display mode', onPressed: _unlock),
       ],
     );
   }
 
-  // ---------- Main panel: idle → processing → result ----------
+  // ---------- Main panel: idle → processing → result, on deep green ----------
+
+  Widget _heroPanel(BuildContext context) => ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: ColoredBox(
+          color: EcoColors.night,
+          child: Stack(children: [
+            const Positioned.fill(child: DriftingShapes()),
+            Positioned.fill(child: Padding(padding: const EdgeInsets.all(40), child: _hero(context))),
+          ]),
+        ),
+      );
 
   Widget _hero(BuildContext context) {
     final session = widget.session;
@@ -214,36 +241,42 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
     };
 
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 450),
+      duration: const Duration(milliseconds: 500),
+      reverseDuration: const Duration(milliseconds: 200), // old state leaves quickly, no messy overlap
       switchInCurve: Curves.easeOutBack,
+      switchOutCurve: Curves.easeIn,
       transitionBuilder: (child, animation) => FadeTransition(
         opacity: animation,
-        child: ScaleTransition(scale: Tween(begin: 0.92, end: 1.0).animate(animation), child: child),
+        child: ScaleTransition(scale: Tween(begin: 0.9, end: 1.0).animate(animation), child: child),
       ),
       child: KeyedSubtree(key: key, child: Center(child: child)),
     );
   }
 
   Widget _idle(BuildContext context) {
-    final text = Theme.of(context).textTheme;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const _PulsingIcon(icon: Icons.contactless, color: EcoColors.emerald),
-        const SizedBox(height: 36),
-        Text('Tap your card to start', style: text.displaySmall?.copyWith(fontWeight: FontWeight.w800)),
-        const SizedBox(height: 12),
-        Text('Then put your empty plastic bottle in the chamber.',
-            style: text.titleLarge?.copyWith(color: EcoColors.muted, fontWeight: FontWeight.w400)),
+        const _PulsingIcon(icon: Icons.contactless),
         const SizedBox(height: 40),
-        const Wrap(
-          spacing: 16,
+        const _HeroTitle('Tap your card to start'),
+        const SizedBox(height: 14),
+        const _HeroSubtitle('Then put your empty plastic bottle in the chamber.'),
+        const SizedBox(height: 44),
+        Wrap(
+          spacing: 14,
           runSpacing: 12,
           alignment: WrapAlignment.center,
           children: [
-            _Step(number: 1, icon: Icons.contactless, label: 'Tap card', color: EcoColors.sky),
-            _Step(number: 2, icon: Icons.local_drink_outlined, label: 'Insert bottle', color: EcoColors.teal),
-            _Step(number: 3, icon: Icons.stars_rounded, label: 'Earn points', color: EcoColors.amber),
+            for (final (i, (icon, label)) in const [
+              (Icons.contactless, 'Tap card'),
+              (Icons.local_drink_outlined, 'Insert bottle'),
+              (Icons.stars_rounded, 'Earn points'),
+            ].indexed)
+              FadeSlideIn(
+                delay: Duration(milliseconds: 250 + 120 * i),
+                child: _Step(number: i + 1, icon: icon, label: label),
+              ),
           ],
         ),
       ],
@@ -251,73 +284,105 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
   }
 
   Widget _processing(BuildContext context, String uid) {
-    final text = Theme.of(context).textTheme;
     final student = widget.students.byUid(uid);
     if (student == null) {
-      return Column(mainAxisSize: MainAxisSize.min, children: [
-        const IconBadge(icon: Icons.person_search_outlined, color: EcoColors.amber, size: 140),
-        const SizedBox(height: 32),
-        Text('Card not registered', style: text.displaySmall?.copyWith(fontWeight: FontWeight.w800)),
-        const SizedBox(height: 12),
-        Text('Please ask the admin to register card $uid.',
-            style: text.titleLarge?.copyWith(color: EcoColors.muted, fontWeight: FontWeight.w400)),
+      return const Column(mainAxisSize: MainAxisSize.min, children: [
+        _BigBadge(icon: Icons.person_search_outlined, color: EcoColors.amber),
+        SizedBox(height: 36),
+        _HeroTitle('Card not registered'),
+        SizedBox(height: 14),
+        _HeroSubtitle('Please ask the admin to register your card.'),
       ]);
     }
+
+    // The machine reports nothing between the tap and the result, so the
+    // stages follow the firmware's timings (crush ~1.5 s, drain 5 s, then weigh).
+    final elapsed = _now.difference(_processingSince).inMilliseconds / 1000;
+    final stage = elapsed < 1.5 ? 0 : (elapsed < 6.5 ? 1 : 2);
+
     return Column(mainAxisSize: MainAxisSize.min, children: [
-      InitialsAvatar(name: student.name, size: 150),
-      const SizedBox(height: 32),
-      Text('Hi, ${student.name.split(' ').first}!', style: text.displayMedium?.copyWith(fontWeight: FontWeight.w800)),
-      const SizedBox(height: 12),
-      Text('Crushing, draining and weighing your bottle…',
-          style: text.titleLarge?.copyWith(color: EcoColors.muted, fontWeight: FontWeight.w400)),
-      const SizedBox(height: 32),
-      SizedBox(
-        width: 360,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: const LinearProgressIndicator(minHeight: 8, backgroundColor: EcoColors.mint),
+      Container(
+        width: 150,
+        height: 150,
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(color: EcoColors.lime, shape: BoxShape.circle),
+        child: Text(
+          InitialsAvatar.initials(student.name),
+          style: const TextStyle(fontSize: 54, fontWeight: FontWeight.w800, color: EcoColors.night),
         ),
       ),
+      const SizedBox(height: 32),
+      _HeroTitle('Hi, ${student.name.split(' ').first}!', size: 60),
+      const SizedBox(height: 12),
+      const _HeroSubtitle('Hold on while we process your bottle.'),
+      const SizedBox(height: 40),
+      Row(mainAxisSize: MainAxisSize.min, children: [
+        for (final (i, (icon, label)) in const [
+          (Icons.compress, 'Crushing'),
+          (Icons.water_drop_outlined, 'Draining'),
+          (Icons.scale_outlined, 'Weighing'),
+        ].indexed) ...[
+          if (i > 0) _StageLine(done: stage >= i),
+          _Stage(icon: icon, label: label, state: stage > i ? 1 : (stage == i ? 0 : -1)),
+        ],
+      ]),
     ]);
   }
 
   Widget _accepted(BuildContext context, WeightEvent w) {
-    final text = Theme.of(context).textTheme;
     final student = widget.students.byUid(w.uid);
     final grams = w.grams == w.grams.roundToDouble() ? w.grams.toStringAsFixed(0) : w.grams.toStringAsFixed(1);
 
     return Column(mainAxisSize: MainAxisSize.min, children: [
-      TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0.4, end: 1),
-        duration: const Duration(milliseconds: 900),
-        curve: Curves.elasticOut,
-        builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
-        child: Text(
-          '+${w.points}',
-          style: const TextStyle(fontSize: 160, fontWeight: FontWeight.w800, color: EcoColors.emerald, height: 1),
-        ),
-      ),
-      Text(w.points == 1 ? 'point' : 'points',
-          style: text.displaySmall?.copyWith(color: EcoColors.emerald, fontWeight: FontWeight.w800)),
-      const SizedBox(height: 24),
-      Text('$grams g of plastic recycled', style: text.headlineSmall),
-      const SizedBox(height: 20),
-      if (student != null)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-          decoration: BoxDecoration(color: EcoColors.mint, borderRadius: BorderRadius.circular(40)),
-          child: Text(
-            'Thank you, ${student.name.split(' ').first}!  Total: ${student.points} points',
-            style: text.titleLarge?.copyWith(color: EcoColors.forest),
+      SizedBox(
+        height: 220,
+        child: Stack(alignment: Alignment.center, clipBehavior: Clip.none, children: [
+          const Positioned.fill(child: _Burst()),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.4, end: 1),
+            duration: const Duration(milliseconds: 900),
+            curve: Curves.elasticOut,
+            builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+            child: TweenAnimationBuilder<int>(
+              tween: IntTween(begin: 0, end: w.points),
+              duration: const Duration(milliseconds: 900),
+              curve: Curves.easeOutCubic,
+              builder: (context, n, _) => Text(
+                '+$n',
+                style: const TextStyle(
+                  fontSize: 180,
+                  fontWeight: FontWeight.w800,
+                  color: EcoColors.lime,
+                  height: 1,
+                  letterSpacing: -6,
+                ),
+              ),
+            ),
           ),
-        )
-      else
-        Text('Register this card to keep the points.', style: text.titleLarge?.copyWith(color: EcoColors.amber)),
+        ]),
+      ),
+      Text(
+        w.points == 1 ? 'POINT EARNED' : 'POINTS EARNED',
+        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 4),
+      ),
+      const SizedBox(height: 28),
+      Row(mainAxisSize: MainAxisSize.min, children: [
+        _ResultChip(icon: Icons.scale_outlined, text: '$grams g recycled'),
+        if (student != null) ...[
+          const SizedBox(width: 12),
+          _ResultChip(icon: Icons.account_balance_wallet_outlined, text: 'Total: ${student.points} pts'),
+        ],
+      ]),
+      const SizedBox(height: 24),
+      _HeroSubtitle(
+        student != null
+            ? 'Thank you, ${student.name.split(' ').first}! Every bottle counts.'
+            : 'Register this card with the admin to keep the points.',
+      ),
     ]);
   }
 
   Widget _rejected(BuildContext context, RejectEvent r) {
-    final text = Theme.of(context).textTheme;
     final message = switch (r.reason) {
       'too_heavy' => 'This item is too heavy. Only empty plastic bottles are accepted.',
       'bin_full' => 'The storage bin is full. Please wait for staff to empty it.',
@@ -326,16 +391,11 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
       _ => 'Please try again.',
     };
     return Column(mainAxisSize: MainAxisSize.min, children: [
-      const IconBadge(icon: Icons.block, color: EcoColors.coral, size: 140),
-      const SizedBox(height: 32),
-      Text('Bottle not accepted', style: text.displaySmall?.copyWith(fontWeight: FontWeight.w800)),
-      const SizedBox(height: 12),
-      SizedBox(
-        width: 560,
-        child: Text(message,
-            textAlign: TextAlign.center,
-            style: text.titleLarge?.copyWith(color: EcoColors.muted, fontWeight: FontWeight.w400)),
-      ),
+      const _BigBadge(icon: Icons.block, color: EcoColors.coral),
+      const SizedBox(height: 36),
+      const _HeroTitle('Bottle not accepted'),
+      const SizedBox(height: 14),
+      SizedBox(width: 600, child: _HeroSubtitle(message)),
     ]);
   }
 
@@ -347,26 +407,33 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
     final color = full ? EcoColors.coral : (level != null && level >= 70 ? EcoColors.amber : EcoColors.emerald);
     return _KioskCard(
       child: Column(children: [
-        const _CardTitle('Bin level'),
-        const SizedBox(height: 12),
+        const _CardTitle(icon: Icons.delete_outline, text: 'Bin level'),
+        const SizedBox(height: 16),
         SizedBox.square(
-          dimension: 104,
-          child: Stack(fit: StackFit.expand, children: [
-            CircularProgressIndicator(
-              value: (level ?? 0) / 100,
-              strokeWidth: 12,
-              strokeCap: StrokeCap.round,
-              color: color,
-              backgroundColor: color.withValues(alpha: 0.12),
-            ),
-            Center(
-              child: Text(level == null ? '—' : '$level%',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: color)),
-            ),
-          ]),
+          dimension: 110,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(end: (level ?? 0) / 100),
+            duration: Motion.slow,
+            curve: Motion.curve,
+            builder: (context, value, _) => Stack(fit: StackFit.expand, children: [
+              CircularProgressIndicator(
+                value: value,
+                strokeWidth: 12,
+                strokeCap: StrokeCap.round,
+                color: color,
+                backgroundColor: color.withValues(alpha: 0.12),
+              ),
+              Center(
+                child: Text(
+                  level == null ? '—' : '${(value * 100).round()}%',
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: color),
+                ),
+              ),
+            ]),
+          ),
         ),
-        const SizedBox(height: 12),
-        Text(full ? 'Full!' : 'Has space', style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 14),
+        Text(full ? 'Full, please empty' : 'Has space', style: TextStyle(color: color, fontWeight: FontWeight.w700)),
       ]),
     );
   }
@@ -376,11 +443,13 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
     final grams = _today.fold(0.0, (sum, r) => sum + r.grams);
     return _KioskCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const _CardTitle('Today'),
-        const SizedBox(height: 14),
-        _TodayNumber(value: '$bottles', label: 'bottles', color: EcoColors.emerald),
-        const SizedBox(height: 10),
-        _TodayNumber(value: (grams / 1000).toStringAsFixed(2), label: 'kg plastic', color: EcoColors.teal),
+        const _CardTitle(icon: Icons.today_outlined, text: 'Today'),
+        const SizedBox(height: 16),
+        _CountUp(value: bottles.toDouble(), decimals: 0, color: EcoColors.emerald),
+        const Text('bottles', style: TextStyle(color: EcoColors.muted)),
+        const SizedBox(height: 12),
+        _CountUp(value: grams / 1000, decimals: 2, color: EcoColors.teal),
+        const Text('kg plastic', style: TextStyle(color: EcoColors.muted)),
       ]),
     );
   }
@@ -389,12 +458,12 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
     final top = _month.where((r) => r.isRegistered && r.points > 0).take(5).toList();
     return _KioskCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          const Icon(Icons.emoji_events_rounded, color: EcoColors.amber),
-          const SizedBox(width: 8),
-          Expanded(child: _CardTitle('Top recyclers · ${monthNames[_now.month - 1]}')),
-        ]),
-        const SizedBox(height: 12),
+        _CardTitle(
+          icon: Icons.emoji_events_rounded,
+          iconColor: EcoColors.amber,
+          text: 'Top recyclers · ${monthNames[_now.month - 1]}',
+        ),
+        const SizedBox(height: 14),
         if (top.isEmpty)
           const Expanded(
             child: Center(
@@ -403,7 +472,13 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
             ),
           )
         else
-          for (final (i, r) in top.indexed) _LeaderRow(rank: i + 1, row: r),
+          for (final (i, r) in top.indexed)
+            FadeSlideIn(
+              key: ValueKey('${r.name}-${r.points}'),
+              delay: Duration(milliseconds: 80 * i),
+              offset: const Offset(16, 0),
+              child: _LeaderRow(rank: i + 1, row: r),
+            ),
       ]),
     );
   }
@@ -411,15 +486,266 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
 
 const _weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-class _KioskCard extends StatelessWidget {
-  const _KioskCard({required this.child, this.padding = const EdgeInsets.all(20)});
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.connected});
 
-  final Widget child;
-  final EdgeInsets padding;
+  final bool connected;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = connected ? EcoColors.emerald : EcoColors.amber;
+    return AnimatedContainer(
+      duration: Motion.medium,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(children: [
+        _Blink(color: color),
+        const SizedBox(width: 10),
+        Text(
+          connected ? 'Machine ready' : 'Connecting to machine…',
+          style: TextStyle(fontWeight: FontWeight.w700, color: connected ? EcoColors.forest : const Color(0xFF92400E)),
+        ),
+      ]),
+    );
+  }
+}
+
+/// A dot with a soft halo that keeps pulsing.
+class _Blink extends StatefulWidget {
+  const _Blink({required this.color});
+
+  final Color color;
+
+  @override
+  State<_Blink> createState() => _BlinkState();
+}
+
+class _BlinkState extends State<_Blink> with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600))..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) => Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: widget.color,
+            boxShadow: [
+              BoxShadow(
+                color: widget.color.withValues(alpha: 0.45 * (1 - _controller.value)),
+                spreadRadius: 7 * _controller.value,
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _HeroTitle extends StatelessWidget {
+  const _HeroTitle(this.text, {this.size = 54});
+
+  final String text;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(color: Colors.white, fontSize: size, fontWeight: FontWeight.w800, letterSpacing: -1.5, height: 1.1),
+      );
+}
+
+class _HeroSubtitle extends StatelessWidget {
+  const _HeroSubtitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 20, height: 1.5),
+      );
+}
+
+/// Large icon on a tinted circle, for the "not registered" and "rejected" states.
+class _BigBadge extends StatelessWidget {
+  const _BigBadge({required this.icon, required this.color});
+
+  final IconData icon;
+  final Color color;
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: padding,
+        width: 150,
+        height: 150,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: color.withValues(alpha: 0.18)),
+        child: Center(
+          child: Container(
+            width: 104,
+            height: 104,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+            child: Icon(icon, color: Colors.white, size: 54),
+          ),
+        ),
+      );
+}
+
+/// One processing stage: done (1), in progress (0) or waiting (-1).
+class _Stage extends StatelessWidget {
+  const _Stage({required this.icon, required this.label, required this.state});
+
+  final IconData icon;
+  final String label;
+  final int state;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = state == 0;
+    final done = state == 1;
+    return SizedBox(
+      width: 110,
+      child: Column(children: [
+        AnimatedContainer(
+          duration: Motion.medium,
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: done ? EcoColors.lime : (active ? Colors.white : Colors.white.withValues(alpha: 0.08)),
+          ),
+          child: active
+              ? const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: CircularProgressIndicator(strokeWidth: 3, color: EcoColors.emerald),
+                )
+              : Icon(
+                  done ? Icons.check_rounded : icon,
+                  color: done ? EcoColors.night : Colors.white.withValues(alpha: 0.5),
+                  size: 30,
+                ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          label,
+          style: TextStyle(
+            color: state >= 0 ? Colors.white : Colors.white.withValues(alpha: 0.5),
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _StageLine extends StatelessWidget {
+  const _StageLine({required this.done});
+
+  final bool done;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 30),
+        child: AnimatedContainer(
+          duration: Motion.medium,
+          width: 48,
+          height: 3,
+          decoration: BoxDecoration(
+            color: done ? EcoColors.lime : Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+      );
+}
+
+class _ResultChip extends StatelessWidget {
+  const _ResultChip({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(40),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, color: EcoColors.lime, size: 20),
+          const SizedBox(width: 10),
+          Text(text, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+        ]),
+      );
+}
+
+/// Dots that fly outward and fade once, behind the points number.
+class _Burst extends StatefulWidget {
+  const _Burst();
+
+  @override
+  State<_Burst> createState() => _BurstState();
+}
+
+class _BurstState extends State<_Burst> with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..forward();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(painter: _BurstPainter(_controller));
+}
+
+class _BurstPainter extends CustomPainter {
+  _BurstPainter(this.progress) : super(repaint: progress);
+
+  final Animation<double> progress;
+
+  static const _colors = [EcoColors.lime, EcoColors.emerald, EcoColors.amber, Colors.white];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final t = Curves.easeOutCubic.transform(progress.value);
+    final center = size.center(Offset.zero);
+    const count = 18;
+    for (var i = 0; i < count; i++) {
+      final angle = i / count * 2 * math.pi + (i.isEven ? 0.12 : -0.08);
+      final distance = (120 + (i % 3) * 50) * t;
+      final radius = (i % 3 == 0 ? 7.0 : 4.5) * (1 - t * 0.6);
+      final paint = Paint()..color = _colors[i % _colors.length].withValues(alpha: 1 - progress.value);
+      canvas.drawCircle(center + Offset(math.cos(angle), math.sin(angle)) * distance, radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BurstPainter old) => false;
+}
+
+class _KioskCard extends StatelessWidget {
+  const _KioskCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -430,30 +756,44 @@ class _KioskCard extends StatelessWidget {
 }
 
 class _CardTitle extends StatelessWidget {
-  const _CardTitle(this.text);
+  const _CardTitle({required this.icon, required this.text, this.iconColor = EcoColors.emerald});
 
+  final IconData icon;
   final String text;
+  final Color iconColor;
 
   @override
-  Widget build(BuildContext context) => Text(
-        text,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: EcoColors.ink),
-      );
+  Widget build(BuildContext context) => Row(children: [
+        IconBadge(icon: icon, color: iconColor, size: 32),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: EcoColors.ink),
+          ),
+        ),
+      ]);
 }
 
-class _TodayNumber extends StatelessWidget {
-  const _TodayNumber({required this.value, required this.label, required this.color});
+/// A number that counts up (or down) to its new value.
+class _CountUp extends StatelessWidget {
+  const _CountUp({required this.value, required this.decimals, required this.color});
 
-  final String value;
-  final String label;
+  final double value;
+  final int decimals;
   final Color color;
 
   @override
-  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(value, style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: color, height: 1.1)),
-        Text(label, style: const TextStyle(color: EcoColors.muted)),
-      ]);
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+        tween: Tween(end: value),
+        duration: const Duration(milliseconds: 900),
+        curve: Motion.curve,
+        builder: (context, v, _) => Text(
+          v.toStringAsFixed(decimals),
+          style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: color, height: 1.1, letterSpacing: -0.5),
+        ),
+      );
 }
 
 class _LeaderRow extends StatelessWidget {
@@ -466,80 +806,87 @@ class _LeaderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final medal = rank <= 3 ? _medals[rank - 1] : EcoColors.muted;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
+    final medal = rank <= 3 ? _medals[rank - 1] : null;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: rank == 1 ? EcoColors.mint : EcoColors.background,
+        borderRadius: BorderRadius.circular(14),
+      ),
       child: Row(children: [
-        SizedBox(
+        Container(
           width: 28,
-          child: Text('$rank', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: medal)),
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: medal ?? Colors.transparent),
+          child: Text(
+            '$rank',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: medal == null ? EcoColors.muted : Colors.white),
+          ),
         ),
-        InitialsAvatar(name: row.name, size: 40, color: rank == 1 ? EcoColors.amber : EcoColors.emerald),
+        const SizedBox(width: 10),
+        InitialsAvatar(name: row.name, size: 38, color: rank == 1 ? EcoColors.forest : EcoColors.emerald),
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(row.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
             Text(
-              [row.gradeSection, '${row.bottles} bottles'].where((s) => s.isNotEmpty).join(' · '),
+              [row.gradeSection, '${row.bottles} ${row.bottles == 1 ? 'bottle' : 'bottles'}'].where((s) => s.isNotEmpty).join(' · '),
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(color: EcoColors.muted, fontSize: 12),
             ),
           ]),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(color: EcoColors.mint, borderRadius: BorderRadius.circular(20)),
-          child: Text('${row.points} pts',
-              style: const TextStyle(color: EcoColors.forest, fontWeight: FontWeight.w800)),
-        ),
+        Text('${row.points}', style: const TextStyle(fontSize: 18, color: EcoColors.forest, fontWeight: FontWeight.w800)),
+        const Text(' pts', style: TextStyle(fontSize: 12, color: EcoColors.muted, fontWeight: FontWeight.w600)),
       ]),
     );
   }
 }
 
 class _Step extends StatelessWidget {
-  const _Step({required this.number, required this.icon, required this.label, required this.color});
+  const _Step({required this.number, required this.icon, required this.label});
 
   final int number;
   final IconData icon;
   final String label;
-  final Color color;
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        padding: const EdgeInsets.fromLTRB(10, 10, 20, 10),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(40),
-          border: Border.all(color: color.withValues(alpha: 0.25)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          CircleAvatar(
-            radius: 13,
-            backgroundColor: color,
-            child: Text('$number', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+          Container(
+            width: 28,
+            height: 28,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(shape: BoxShape.circle, color: EcoColors.lime),
+            child: Text('$number', style: const TextStyle(color: EcoColors.night, fontWeight: FontWeight.w800, fontSize: 13)),
           ),
-          const SizedBox(width: 10),
-          Icon(icon, color: color),
-          const SizedBox(width: 6),
-          Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 16)),
+          const SizedBox(width: 12),
+          Icon(icon, color: Colors.white.withValues(alpha: 0.8), size: 20),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
         ]),
       );
 }
 
-/// A big icon with a soft ring that keeps expanding and fading, inviting a tap.
+/// A big lime circle with rings that keep expanding and fading, inviting a tap.
 class _PulsingIcon extends StatefulWidget {
-  const _PulsingIcon({required this.icon, required this.color});
+  const _PulsingIcon({required this.icon});
 
   final IconData icon;
-  final Color color;
 
   @override
   State<_PulsingIcon> createState() => _PulsingIconState();
 }
 
 class _PulsingIconState extends State<_PulsingIcon> with SingleTickerProviderStateMixin {
-  late final _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800))..repeat();
+  late final _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2200))..repeat();
 
   @override
   void dispose() {
@@ -549,23 +896,28 @@ class _PulsingIconState extends State<_PulsingIcon> with SingleTickerProviderSta
 
   @override
   Widget build(BuildContext context) => SizedBox.square(
-        dimension: 220,
+        dimension: 240,
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, _) => Stack(alignment: Alignment.center, children: [
-            Container(
-              width: 140 + 80 * _controller.value,
-              height: 140 + 80 * _controller.value,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: widget.color.withValues(alpha: 0.18 * (1 - _controller.value)),
-              ),
-            ),
+            // Two rings, half a cycle apart.
+            for (final offset in [0.0, 0.5])
+              Builder(builder: (context) {
+                final t = (_controller.value + offset) % 1;
+                return Container(
+                  width: 140 + 100 * t,
+                  height: 140 + 100 * t,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: EcoColors.lime.withValues(alpha: 0.5 * (1 - t)), width: 2),
+                  ),
+                );
+              }),
             Container(
               width: 140,
               height: 140,
-              decoration: const BoxDecoration(shape: BoxShape.circle, color: EcoColors.emerald),
-              child: Icon(widget.icon, color: Colors.white, size: 72),
+              decoration: const BoxDecoration(shape: BoxShape.circle, color: EcoColors.lime),
+              child: Icon(widget.icon, color: EcoColors.night, size: 70),
             ),
           ]),
         ),
