@@ -8,6 +8,7 @@ import '../reports/reports_screen.dart';
 import '../students/students_screen.dart';
 import '../widgets/stat_card.dart';
 import '../theme/app_theme.dart';
+import '../widgets/motion.dart';
 import '../widgets/page_parts.dart';
 import 'app_sidebar.dart';
 import 'window_controls.dart';
@@ -80,7 +81,7 @@ class _OfficerShellState extends State<OfficerShell> {
                 Expanded(
                   child: students == null || reports == null
                       ? _noData(context)
-                      : IndexedStack(
+                      : ScreenSwitcher(
                           // A new import replaces the screens, so they show the new data.
                           key: ValueKey(data.exportedAt),
                           index: _screen,

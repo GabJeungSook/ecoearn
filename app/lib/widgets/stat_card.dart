@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'motion.dart';
 
 /// A labelled number tile, used in rows across the top of a screen.
 class StatCard extends StatelessWidget {
@@ -35,43 +36,86 @@ class StatCard extends StatelessWidget {
     final muted = highlight ? Colors.white.withValues(alpha: 0.8) : EcoColors.muted;
 
     return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 6),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: highlight ? EcoColors.emerald : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: highlight ? null : Border.all(color: EcoColors.line),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              Expanded(child: SmallLabel(label, color: muted)),
-              Icon(icon, size: 20, color: highlight ? Colors.white : color),
-            ]),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: valueColor ?? onCard),
+      child: FadeSlideIn(
+        offset: const Offset(0, 14),
+        child: HoverBuilder(
+          builder: (context, hovered) => AnimatedContainer(
+            duration: Motion.fast,
+            margin: const EdgeInsets.symmetric(horizontal: 6),
+            padding: const EdgeInsets.all(20),
+            transform: Matrix4.translationValues(0, hovered ? -2 : 0, 0),
+            decoration: BoxDecoration(
+              color: highlight ? EcoColors.emerald : Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: highlight
+                  ? null
+                  : Border.all(color: hovered ? color.withValues(alpha: 0.4) : EcoColors.line),
             ),
-            if (progress != null) ...[
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 4,
-                  color: valueColor ?? color,
-                  backgroundColor: EcoColors.field,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Expanded(child: SmallLabel(label, color: muted)),
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: highlight ? Colors.white.withValues(alpha: 0.18) : color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icon, size: 18, color: highlight ? Colors.white : color),
+                  ),
+                ]),
+                const SizedBox(height: 8),
+                // A changed value slides up into place.
+                AnimatedSwitcher(
+                  duration: Motion.medium,
+                  layoutBuilder: (current, previous) => Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [...previous, ?current],
+                  ),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween(begin: const Offset(0, 0.4), end: Offset.zero).animate(animation),
+                      child: child,
+                    ),
+                  ),
+                  child: Text(
+                    value,
+                    key: ValueKey(value),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                      color: valueColor ?? onCard,
+                    ),
+                  ),
                 ),
-              ),
-            ],
-            const SizedBox(height: 6),
-            Text(detail, style: TextStyle(fontSize: 12, color: muted), overflow: TextOverflow.ellipsis),
-          ],
+                if (progress != null) ...[
+                  const SizedBox(height: 10),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(end: progress!.clamp(0, 1)),
+                    duration: Motion.slow,
+                    curve: Motion.curve,
+                    builder: (context, value, _) => ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: value,
+                        minHeight: 5,
+                        color: valueColor ?? color,
+                        backgroundColor: EcoColors.field,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 6),
+                Text(detail, style: TextStyle(fontSize: 12, color: muted), overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -126,18 +170,25 @@ class RingStat extends StatelessWidget {
   Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
         SizedBox.square(
           dimension: 34,
-          child: CircularProgressIndicator(
-            value: value.clamp(0, 1),
-            strokeWidth: 4,
-            strokeCap: StrokeCap.round,
-            color: color,
-            backgroundColor: EcoColors.field,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: value.clamp(0, 1)),
+            duration: Motion.slow,
+            curve: Motion.curve,
+            builder: (context, v, _) => CircularProgressIndicator(
+              value: v,
+              strokeWidth: 4,
+              strokeCap: StrokeCap.round,
+              color: color,
+              backgroundColor: EcoColors.field,
+            ),
           ),
         ),
         const SizedBox(width: 10),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('${(value * 100).toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.w700)),
-          SmallLabel(label),
-        ]),
+        Flexible(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('${(value * 100).toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.w700)),
+            SmallLabel(label),
+          ]),
+        ),
       ]);
 }

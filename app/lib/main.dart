@@ -104,7 +104,13 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
       theme: buildAppTheme(),
       home: ListenableBuilder(
         listenable: widget.auth,
-        builder: (context, _) => switch (widget.auth.current?.role) {
+        // Signing in or out cross-fades between the screens.
+        builder: (context, _) => AnimatedSwitcher(
+          duration: const Duration(milliseconds: 450),
+          switchInCurve: Curves.easeOutCubic,
+          child: KeyedSubtree(
+            key: ValueKey(widget.auth.current?.role),
+            child: switch (widget.auth.current?.role) {
           null => LoginScreen(auth: widget.auth),
           Role.admin => AdminShell(
               auth: widget.auth,
@@ -128,7 +134,9 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
               data: widget.officerData,
               connection: _connection,
             ),
-        },
+            },
+          ),
+        ),
       ),
     );
   }

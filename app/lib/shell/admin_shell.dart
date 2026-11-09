@@ -13,6 +13,7 @@ import '../live/live_session.dart';
 import '../reports/reports_screen.dart';
 import '../serial/serial_connection.dart';
 import '../students/students_screen.dart';
+import '../widgets/motion.dart';
 import 'app_sidebar.dart';
 import 'window_controls.dart';
 
@@ -88,8 +89,8 @@ class _AdminShellState extends State<AdminShell> {
               ],
             ),
             Expanded(
-              // IndexedStack keeps each screen's state (port list, search) when switching.
-              child: IndexedStack(
+              // ScreenSwitcher keeps each screen's state (port list, search) when switching.
+              child: ScreenSwitcher(
                 index: _screen,
                 children: [
                   LiveScreen(

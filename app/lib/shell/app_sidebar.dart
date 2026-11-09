@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../auth/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand.dart';
+import '../widgets/motion.dart';
 import 'window_controls.dart';
 
 class SidebarItem {
@@ -79,30 +80,69 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? EcoColors.emerald : (onTap == null ? EcoColors.line : EcoColors.muted);
+    final enabled = onTap != null;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: SizedBox(
-          width: 72,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: Column(children: [
-              Icon(item.icon, color: color, size: 24),
-              const SizedBox(height: 4),
-              Text(
-                item.label,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: color,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: HoverBuilder(
+        cursor: enabled ? SystemMouseCursors.click : MouseCursor.defer,
+        builder: (context, hovered) {
+          final color = selected
+              ? EcoColors.forest
+              : !enabled
+                  ? EcoColors.line
+                  : hovered
+                      ? EcoColors.ink
+                      : EcoColors.muted;
+          return GestureDetector(
+            onTap: onTap,
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              // Accent bar on the left edge of the selected item.
+              AnimatedContainer(
+                duration: Motion.medium,
+                curve: Motion.curve,
+                width: 4,
+                height: selected ? 28 : 0,
+                decoration: BoxDecoration(
+                  color: EcoColors.emerald,
+                  borderRadius: const BorderRadius.horizontal(right: Radius.circular(4)),
                 ),
               ),
+              const SizedBox(width: 6),
+              AnimatedContainer(
+                duration: Motion.fast,
+                width: 68,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? EcoColors.mint
+                      : hovered && enabled
+                          ? EcoColors.field
+                          : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(children: [
+                  AnimatedScale(
+                    scale: hovered && enabled && !selected ? 1.1 : 1,
+                    duration: Motion.fast,
+                    child: Icon(item.icon, color: color, size: 23),
+                  ),
+                  const SizedBox(height: 4),
+                  AnimatedDefaultTextStyle(
+                    duration: Motion.fast,
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 11,
+                      color: color,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                    child: Text(item.label),
+                  ),
+                ]),
+              ),
+              const SizedBox(width: 9), // 4 + 6 + 68 + 9 = the sidebar's 87 px inside its border
             ]),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

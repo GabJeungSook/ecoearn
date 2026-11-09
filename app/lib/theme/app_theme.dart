@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 abstract final class EcoColors {
   static const emerald = Color(0xFF16A34A); // the accent
   static const forest = Color(0xFF14532D);
+  static const night = Color(0xFF0B2B20); // deep green for hero panels
+  static const lime = Color(0xFFA3E635); // bright highlight on dark green
   static const mint = Color(0xFFE7F6EC); // light green tint
   static const teal = Color(0xFF0D9488);
   static const sky = Color(0xFF2563EB);
@@ -26,7 +28,13 @@ ThemeData buildAppTheme() {
     surface: Colors.white,
   );
   final rounded = RoundedRectangleBorder(borderRadius: BorderRadius.circular(12));
-  final base = ThemeData(colorScheme: scheme, useMaterial3: true);
+  final base = ThemeData(
+    colorScheme: scheme,
+    useMaterial3: true,
+    fontFamily: 'PlusJakartaSans',
+    // Symbols the bundled font lacks (→, ●, ○) come from Windows' own fonts.
+    fontFamilyFallback: const ['Segoe UI', 'Segoe UI Symbol'],
+  );
 
   return base.copyWith(
     scaffoldBackgroundColor: EcoColors.background,

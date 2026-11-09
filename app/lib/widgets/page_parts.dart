@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'motion.dart';
 
 /// Screen heading: a small uppercase label above a large title, actions on the right.
 class PageHeader extends StatelessWidget {
@@ -11,23 +12,26 @@ class PageHeader extends StatelessWidget {
   final List<Widget> actions;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(32, 32, 32, 20),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(
-                  overline.toUpperCase(),
-                  style: const TextStyle(fontSize: 11, letterSpacing: 1.2, color: EcoColors.muted, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 6),
-                Text(title, style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w600, color: EcoColors.ink)),
-              ]),
-            ),
-            for (final action in actions) Padding(padding: const EdgeInsets.only(left: 8), child: action),
-          ],
+  Widget build(BuildContext context) => FadeSlideIn(
+        offset: const Offset(0, 10),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(32, 32, 32, 20),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(
+                    overline.toUpperCase(),
+                    style: const TextStyle(fontSize: 11, letterSpacing: 1.2, color: EcoColors.muted, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(title, style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: -0.6, color: EcoColors.ink)),
+                ]),
+              ),
+              for (final action in actions) Padding(padding: const EdgeInsets.only(left: 8), child: action),
+            ],
+          ),
         ),
       );
 }
@@ -50,23 +54,38 @@ class SquareIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Tooltip(
         message: tooltip,
-        child: Material(
-          color: primary ? EcoColors.emerald : EcoColors.field,
-          borderRadius: BorderRadius.circular(10),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(10),
-            onTap: onPressed,
-            child: SizedBox.square(
-              dimension: 40,
-              child: Icon(icon, size: 20, color: primary ? Colors.white : EcoColors.ink),
-            ),
-          ),
+        child: HoverBuilder(
+          cursor: onPressed == null ? MouseCursor.defer : SystemMouseCursors.click,
+          builder: (context, hovered) {
+            final active = hovered && onPressed != null;
+            return AnimatedContainer(
+              duration: Motion.fast,
+              decoration: BoxDecoration(
+                color: primary
+                    ? (active ? EcoColors.forest : EcoColors.emerald)
+                    : (active ? EcoColors.line : EcoColors.field),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: onPressed,
+                  child: SizedBox.square(
+                    dimension: 40,
+                    child: Icon(icon, size: 20, color: primary ? Colors.white : EcoColors.ink),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       );
 }
 
-/// A list row drawn as its own rounded white card. The selected row is
-/// filled with the accent color and its text and icons turn white.
+/// A list row drawn as its own rounded white card. It fades in when it first
+/// appears and lifts its border on hover. The selected row is filled with the
+/// accent color and its text and icons turn white.
 class RowCard extends StatelessWidget {
   const RowCard({super.key, required this.child, this.selected = false, this.onTap});
 
@@ -77,22 +96,39 @@ class RowCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final foreground = selected ? Colors.white : EcoColors.ink;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: selected ? EcoColors.emerald : Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: selected ? BorderSide.none : const BorderSide(color: EcoColors.line),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            child: DefaultTextStyle.merge(
-              style: TextStyle(color: foreground, fontSize: 14),
-              child: IconTheme.merge(data: IconThemeData(color: foreground, size: 20), child: child),
+    return FadeSlideIn(
+      duration: Motion.medium,
+      offset: const Offset(0, 8),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: HoverBuilder(
+          cursor: onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
+          builder: (context, hovered) => AnimatedContainer(
+            duration: Motion.fast,
+            decoration: BoxDecoration(
+              color: selected ? EcoColors.emerald : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: selected
+                    ? EcoColors.emerald
+                    : hovered
+                        ? EcoColors.emerald.withValues(alpha: 0.45)
+                        : EcoColors.line,
+              ),
+            ),
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: onTap,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  child: DefaultTextStyle.merge(
+                    style: TextStyle(color: foreground, fontSize: 14),
+                    child: IconTheme.merge(data: IconThemeData(color: foreground, size: 20), child: child),
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -136,9 +172,14 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 48, color: EcoColors.muted),
-          const SizedBox(height: 12),
-          Text(message, textAlign: TextAlign.center, style: const TextStyle(color: EcoColors.muted)),
+          Container(
+            width: 84,
+            height: 84,
+            decoration: const BoxDecoration(color: EcoColors.mint, shape: BoxShape.circle),
+            child: Icon(icon, size: 38, color: EcoColors.emerald),
+          ),
+          const SizedBox(height: 16),
+          Text(message, textAlign: TextAlign.center, style: const TextStyle(color: EcoColors.muted, fontSize: 15)),
           if (action != null) ...[const SizedBox(height: 20), action!],
         ]),
       );
