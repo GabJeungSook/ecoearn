@@ -145,6 +145,11 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
        Serial + deposit recording run regardless of who is signed in.
        Not yet tested by hand. Earlier test data ("test" student) disappeared from
        ecoearn.db for an unknown reason; persistence verified in a test, re-check by hand.
+4f. [x] Demo mode (app/lib/serial/simulator.dart): simulated deposits without an ESP32.
+       Admin Live screen "Demo" button; kiosk Ctrl+Shift+D. Events are injected into
+       SerialConnection with simulated=true; DepositRecorder never saves them.
+       Same timings as the firmware (8.5 s processing). Design: Plus Jakarta Sans font
+       (bundled, OFL), shared motion helpers in app/lib/widgets/motion.dart.
 4e. [ ] Fine deductions (needs eligible fines + points-to-peso rate from the group)
 5. [ ] After soldering: wire + test MFRC522, then HX711 (calibrate with known weights)
        MFRC522 wiring (ESP32 left column, USB up): SDA→D5, SCK→D18, MOSI→D23,

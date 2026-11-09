@@ -111,6 +111,9 @@ class SerialConnection extends ChangeNotifier {
     }
   }
 
+  /// Feeds an event in as if the ESP32 had sent it (used by the demo simulator).
+  void inject(DeviceEvent event) => _events.add(event);
+
   void _onLine(String line) {
     final event = DeviceEvent.tryParse(line);
     if (event != null) _events.add(event);

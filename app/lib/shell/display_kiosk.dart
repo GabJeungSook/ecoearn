@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../auth/auth_service.dart';
@@ -10,6 +11,7 @@ import '../data/student_repository.dart';
 import '../live/live_session.dart';
 import '../serial/device_event.dart';
 import '../serial/serial_connection.dart';
+import '../serial/simulator.dart';
 import '../theme/app_theme.dart';
 import '../widgets/backdrop.dart';
 import '../widgets/brand.dart';
@@ -28,6 +30,7 @@ class DisplayKiosk extends StatefulWidget {
     required this.session,
     required this.students,
     required this.reports,
+    required this.simulator,
   });
 
   final AuthService auth;
@@ -35,6 +38,9 @@ class DisplayKiosk extends StatefulWidget {
   final LiveSession session;
   final StudentRepository students;
   final Reports reports;
+
+  /// Demo mode, toggled with Ctrl+Shift+D (for showing the screen without an ESP32).
+  final Simulator simulator;
 
   @override
   State<DisplayKiosk> createState() => _DisplayKioskState();
@@ -129,12 +135,18 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyD, control: true, shift: true): widget.simulator.toggle,
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
       body: Container(
         color: EcoColors.background,
         padding: const EdgeInsets.all(28),
         child: ListenableBuilder(
-          listenable: Listenable.merge([widget.connection, widget.session, widget.students]),
+          listenable: Listenable.merge([widget.connection, widget.session, widget.students, widget.simulator]),
           builder: (context, _) => Column(
             children: [
               FadeSlideIn(offset: const Offset(0, -12), child: _topBar(context)),
@@ -175,6 +187,8 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
           ),
         ),
       ),
+    ),
+      ),
     );
   }
 
@@ -193,7 +207,7 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
           Text('Recycle plastic bottles, earn points', style: TextStyle(color: EcoColors.muted, fontSize: 14)),
         ]),
         const Spacer(),
-        _StatusPill(connected: connected),
+        _StatusPill(connected: connected, demo: widget.simulator.running),
         const SizedBox(width: 28),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text.rich(
@@ -473,13 +487,18 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
 const _weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.connected});
+  const _StatusPill({required this.connected, required this.demo});
 
   final bool connected;
+  final bool demo;
 
   @override
   Widget build(BuildContext context) {
-    final color = connected ? EcoColors.emerald : EcoColors.amber;
+    final (color, textColor, text) = demo
+        ? (EcoColors.sky, const Color(0xFF1E3A8A), 'Demo mode')
+        : connected
+            ? (EcoColors.emerald, EcoColors.forest, 'Machine ready')
+            : (EcoColors.amber, const Color(0xFF92400E), 'Connecting to machine…');
     return AnimatedContainer(
       duration: Motion.medium,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -490,10 +509,7 @@ class _StatusPill extends StatelessWidget {
       child: Row(children: [
         _Blink(color: color),
         const SizedBox(width: 10),
-        Text(
-          connected ? 'Machine ready' : 'Connecting to machine…',
-          style: TextStyle(fontWeight: FontWeight.w700, color: connected ? EcoColors.forest : const Color(0xFF92400E)),
-        ),
+        Text(text, style: TextStyle(fontWeight: FontWeight.w700, color: textColor)),
       ]),
     );
   }

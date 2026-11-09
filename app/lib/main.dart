@@ -13,6 +13,7 @@ import 'data/reports.dart';
 import 'data/student_repository.dart';
 import 'live/live_session.dart';
 import 'serial/serial_connection.dart';
+import 'serial/simulator.dart';
 import 'shell/admin_shell.dart';
 import 'shell/display_kiosk.dart';
 import 'shell/officer_shell.dart';
@@ -76,6 +77,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
   );
   late final _reports = Reports(widget.db);
   late final _beeper = CardBeeper(_connection.events);
+  late final _simulator = Simulator(connection: _connection, students: widget.students);
 
   @override
   void initState() {
@@ -85,6 +87,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
 
   @override
   void dispose() {
+    _simulator.dispose();
     _beeper.dispose();
     _recorder.dispose();
     _session.dispose();
@@ -121,6 +124,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
               students: widget.students,
               recorder: _recorder,
               reports: _reports,
+              simulator: _simulator,
             ),
           Role.display => DisplayKiosk(
               auth: widget.auth,
@@ -128,6 +132,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
               session: _session,
               students: widget.students,
               reports: _reports,
+              simulator: _simulator,
             ),
           Role.officer => OfficerShell(
               auth: widget.auth,

@@ -3,9 +3,12 @@ import 'dart:convert';
 /// One message from the ESP32. The firmware sends one JSON object per line,
 /// e.g. `{"event":"weight","uid":"A3F29B11","grams":18,"points":2}`.
 sealed class DeviceEvent {
-  DeviceEvent({DateTime? receivedAt}) : receivedAt = receivedAt ?? DateTime.now();
+  DeviceEvent({DateTime? receivedAt, this.simulated = false}) : receivedAt = receivedAt ?? DateTime.now();
 
   final DateTime receivedAt;
+
+  /// Made up by the demo simulator (simulator.dart), not sent by the ESP32. Never saved.
+  final bool simulated;
 
   /// Parses one serial line. Returns null for lines that aren't event JSON,
   /// such as the startup text the ESP32 prints after every reset.
@@ -48,26 +51,26 @@ sealed class DeviceEvent {
 
 /// The ESP32 (re)started.
 class BootEvent extends DeviceEvent {
-  BootEvent({required this.version, super.receivedAt});
+  BootEvent({required this.version, super.receivedAt, super.simulated});
   final String version;
 }
 
 /// A student tapped their RFID card; a bottle is now being processed.
 class CardEvent extends DeviceEvent {
-  CardEvent({required this.uid, super.receivedAt});
+  CardEvent({required this.uid, super.receivedAt, super.simulated});
   final String uid;
 }
 
 /// A card was read in register mode (after the laptop sent `register`):
 /// no bottle is processed, the UID is only for assigning the card to a student.
 class ScanEvent extends DeviceEvent {
-  ScanEvent({required this.uid, super.receivedAt});
+  ScanEvent({required this.uid, super.receivedAt, super.simulated});
   final String uid;
 }
 
 /// A bottle was crushed, drained and weighed, and points were awarded.
 class WeightEvent extends DeviceEvent {
-  WeightEvent({required this.uid, required this.grams, required this.points, super.receivedAt});
+  WeightEvent({required this.uid, required this.grams, required this.points, super.receivedAt, super.simulated});
   final String uid;
   final double grams;
   final int points;
@@ -77,7 +80,7 @@ class WeightEvent extends DeviceEvent {
 /// `bin_full`, `mechanism`, `no_item`, `too_heavy`. [detail] optionally says
 /// more, e.g. `scale_not_calibrated` for a `mechanism` reject.
 class RejectEvent extends DeviceEvent {
-  RejectEvent({required this.uid, required this.reason, required this.grams, this.detail, super.receivedAt});
+  RejectEvent({required this.uid, required this.reason, required this.grams, this.detail, super.receivedAt, super.simulated});
   final String uid;
   final String reason;
   final double grams;
@@ -86,14 +89,14 @@ class RejectEvent extends DeviceEvent {
 
 /// Storage bin fill level, 0-100 percent.
 class BinEvent extends DeviceEvent {
-  BinEvent({required this.level, super.receivedAt});
+  BinEvent({required this.level, super.receivedAt, super.simulated});
   final int level;
 }
 
 /// Valid JSON with an event name this app doesn't know (or with missing fields).
 /// Kept so newer firmware messages still show up in the log.
 class UnknownEvent extends DeviceEvent {
-  UnknownEvent({required this.name, required this.raw, super.receivedAt});
+  UnknownEvent({required this.name, required this.raw, super.receivedAt, super.simulated});
   final String name;
   final String raw;
 }

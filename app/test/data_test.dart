@@ -36,6 +36,15 @@ void main() {
 
   Future<List<Map<String, Object?>>> deposits() => db.query('deposits', orderBy: 'id');
 
+  test('demo (simulated) deposits are never saved', () async {
+    await deliver([
+      WeightEvent(uid: 'A3F29B11', grams: 30, points: 3, simulated: true),
+      RejectEvent(uid: 'A3F29B11', reason: 'too_heavy', grams: 120, simulated: true),
+      WeightEvent(uid: 'A3F29B11', grams: 20, points: 2),
+    ]);
+    expect((await deposits()).map((d) => d['points']), [2]);
+  });
+
   test('saves a student and normalizes the card UID', () async {
     expect(await students.save(const Student(studentNo: '2024-001', name: ' Juan Dela Cruz ', rfidUid: 'a3 f2 9b 11')),
         isNull);

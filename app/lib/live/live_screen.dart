@@ -4,6 +4,7 @@ import '../data/deposit_recorder.dart';
 import '../data/student_repository.dart';
 import '../serial/device_event.dart';
 import '../serial/serial_connection.dart';
+import '../serial/simulator.dart';
 import '../theme/app_theme.dart';
 import '../widgets/page_parts.dart';
 import '../widgets/stat_card.dart';
@@ -31,6 +32,7 @@ String _plainUid(String uid) => uid;
 
 /// [who] turns a card UID into how the student is shown, e.g. "Juan Dela Cruz (A3F29B11)".
 String describeEvent(DeviceEvent event, [String Function(String uid) who = _plainUid]) => switch (event) {
+      BootEvent(simulated: true) => 'Demo mode: simulated machine started',
       BootEvent(:final version) => 'ESP32 started (firmware $version)',
       CardEvent(:final uid) => 'Card tapped: ${who(uid)}',
       ScanEvent(:final uid) => 'Card read for registration: ${who(uid)}',
@@ -70,12 +72,14 @@ class LiveScreen extends StatefulWidget {
     required this.session,
     required this.students,
     required this.recorder,
+    required this.simulator,
   });
 
   final SerialConnection connection;
   final LiveSession session;
   final StudentRepository students;
   final DepositRecorder recorder;
+  final Simulator simulator;
 
   @override
   State<LiveScreen> createState() => _LiveScreenState();
@@ -116,7 +120,7 @@ class _LiveScreenState extends State<LiveScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: ListenableBuilder(
-        listenable: Listenable.merge([widget.connection, widget.session, widget.students, widget.recorder]),
+        listenable: Listenable.merge([widget.connection, widget.session, widget.students, widget.recorder, widget.simulator]),
         builder: (context, _) {
           final connection = widget.connection;
           final firmware = widget.session.firmwareVersion;
@@ -124,9 +128,11 @@ class _LiveScreenState extends State<LiveScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               PageHeader(
-                overline: connection.isConnected
-                    ? '● Connected to ${connection.portName}${firmware == null ? '' : ' · firmware $firmware'}'
-                    : '○ Not connected',
+                overline: widget.simulator.running
+                    ? '● Demo mode: simulated machine, nothing is saved'
+                    : connection.isConnected
+                        ? '● Connected to ${connection.portName}${firmware == null ? '' : ' · firmware $firmware'}'
+                        : '○ Not connected',
                 title: 'Live',
                 actions: _connectionActions(),
               ),
@@ -176,6 +182,7 @@ class _LiveScreenState extends State<LiveScreen> {
                 child: const Text('Connect'),
               ),
       ),
+      _DemoButton(simulator: widget.simulator),
       SquareIconButton(icon: Icons.clear_all, tooltip: 'Clear the log', onPressed: widget.session.clear),
     ];
   }
@@ -255,6 +262,19 @@ class _LiveScreenState extends State<LiveScreen> {
             IconBadge(icon: _icon(event), color: _eventColor(event), size: 32),
             const SizedBox(width: 14),
             Expanded(child: Text(describeEvent(event, _who), style: const TextStyle(fontWeight: FontWeight.w500))),
+            if (event.simulated)
+              Container(
+                margin: const EdgeInsets.only(right: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: EcoColors.sky.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'DEMO',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1, color: EcoColors.sky),
+                ),
+              ),
             Text(_time(event.receivedAt), style: const TextStyle(color: EcoColors.muted, fontSize: 13)),
           ]),
         );
@@ -263,3 +283,32 @@ class _LiveScreenState extends State<LiveScreen> {
   }
 }
 
+/// Starts or stops demo mode: simulated deposits, so the screens can be shown
+/// without an ESP32. Nothing it does is saved.
+class _DemoButton extends StatelessWidget {
+  const _DemoButton({required this.simulator});
+
+  final Simulator simulator;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: simulator.running
+            ? 'Stop the simulated deposits'
+            : 'Simulate deposits without an ESP32 (nothing is saved)',
+        child: SizedBox(
+          height: 40,
+          child: simulator.running
+              ? FilledButton.icon(
+                  style: FilledButton.styleFrom(backgroundColor: EcoColors.sky),
+                  onPressed: simulator.stop,
+                  icon: const Icon(Icons.stop_rounded, size: 20),
+                  label: const Text('Stop demo'),
+                )
+              : OutlinedButton.icon(
+                  onPressed: simulator.start,
+                  icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                  label: const Text('Demo'),
+                ),
+        ),
+      );
+}

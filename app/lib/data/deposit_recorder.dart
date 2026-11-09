@@ -32,6 +32,7 @@ class DepositRecorder extends ChangeNotifier {
   String? get error => _error;
 
   void _onEvent(DeviceEvent event) {
+    if (event.simulated) return; // demo deposits are only shown, never saved
     final row = switch (event) {
       WeightEvent(:final uid, :final grams, :final points) => _row(event, uid, grams, points, null),
       RejectEvent(:final uid, :final grams, :final reason) => _row(event, uid, grams, 0, reason),

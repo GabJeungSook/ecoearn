@@ -12,6 +12,7 @@ import '../live/live_screen.dart';
 import '../live/live_session.dart';
 import '../reports/reports_screen.dart';
 import '../serial/serial_connection.dart';
+import '../serial/simulator.dart';
 import '../students/students_screen.dart';
 import '../widgets/motion.dart';
 import 'app_sidebar.dart';
@@ -29,12 +30,14 @@ class AdminShell extends StatefulWidget {
     required this.students,
     required this.recorder,
     required this.reports,
+    required this.simulator,
   });
 
   final AuthService auth;
   final Database db;
   final String databasePath;
   final SerialConnection connection;
+  final Simulator simulator;
   final LiveSession session;
   final StudentRepository students;
   final DepositRecorder recorder;
@@ -98,6 +101,7 @@ class _AdminShellState extends State<AdminShell> {
                     session: widget.session,
                     students: widget.students,
                     recorder: widget.recorder,
+                    simulator: widget.simulator,
                   ),
                   StudentsScreen(
                     students: widget.students,
