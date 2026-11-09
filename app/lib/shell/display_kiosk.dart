@@ -295,11 +295,6 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
       ]);
     }
 
-    // The machine reports nothing between the tap and the result, so the
-    // stages follow the firmware's timings (crush ~1.5 s, drain 5 s, then weigh).
-    final elapsed = _now.difference(_processingSince).inMilliseconds / 1000;
-    final stage = elapsed < 1.5 ? 0 : (elapsed < 6.5 ? 1 : 2);
-
     return Column(mainAxisSize: MainAxisSize.min, children: [
       Container(
         width: 150,
@@ -316,16 +311,7 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
       const SizedBox(height: 12),
       const _HeroSubtitle('Hold on while we process your bottle.'),
       const SizedBox(height: 40),
-      Row(mainAxisSize: MainAxisSize.min, children: [
-        for (final (i, (icon, label)) in const [
-          (Icons.compress, 'Crushing'),
-          (Icons.water_drop_outlined, 'Draining'),
-          (Icons.scale_outlined, 'Weighing'),
-        ].indexed) ...[
-          if (i > 0) _StageLine(done: stage >= i),
-          _Stage(icon: icon, label: label, state: stage > i ? 1 : (stage == i ? 0 : -1)),
-        ],
-      ]),
+      _ProcessingTracker(since: _processingSince),
     ]);
   }
 
@@ -433,7 +419,7 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
           ),
         ),
         const SizedBox(height: 14),
-        Text(full ? 'Full, please empty' : 'Has space', style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+        Text(level == null ? 'Waiting for data' : (full ? 'Full, please empty' : 'Has space'), style: TextStyle(color: color, fontWeight: FontWeight.w700)),
       ]),
     );
   }
@@ -597,6 +583,114 @@ class _BigBadge extends StatelessWidget {
             height: 104,
             decoration: BoxDecoration(shape: BoxShape.circle, color: color),
             child: Icon(icon, color: Colors.white, size: 54),
+          ),
+        ),
+      );
+}
+
+/// Live loaders while a bottle is processed: the three stages, an overall
+/// progress bar and a running timer. The machine reports nothing between the
+/// tap and the result, so they follow the firmware's timings (crush ~1.5 s,
+/// drain 5 s, then weigh) and the bar slows near the end until the result comes.
+class _ProcessingTracker extends StatefulWidget {
+  const _ProcessingTracker({required this.since});
+
+  final DateTime since;
+
+  @override
+  State<_ProcessingTracker> createState() => _ProcessingTrackerState();
+}
+
+class _ProcessingTrackerState extends State<_ProcessingTracker> with SingleTickerProviderStateMixin {
+  static const _stages = [
+    (Icons.compress, 'Crushing', 'Crushing your bottle'),
+    (Icons.water_drop_outlined, 'Draining', 'Draining leftover liquid'),
+    (Icons.scale_outlined, 'Weighing', 'Weighing your bottle'),
+  ];
+
+  // Only used to repaint every frame; the values come from the clock.
+  late final _ticker = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat();
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _ticker,
+        builder: (context, _) {
+          final elapsed = DateTime.now().difference(widget.since).inMilliseconds / 1000;
+          final stage = elapsed < 1.5 ? 0 : (elapsed < 6.5 ? 1 : 2);
+          // Linear up to 90% over the expected ~9 s, then creeps toward 98%.
+          final progress = elapsed < 9 ? elapsed / 10 : 0.98 - 0.08 * math.exp(-(elapsed - 9) / 4);
+
+          return Column(mainAxisSize: MainAxisSize.min, children: [
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              for (final (i, (icon, label, _)) in _stages.indexed) ...[
+                if (i > 0) _StageLine(done: stage >= i),
+                _Stage(icon: icon, label: label, state: stage > i ? 1 : (stage == i ? 0 : -1)),
+              ],
+            ]),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: 420,
+              child: Column(children: [
+                Row(children: [
+                  Text(
+                    '${_stages[stage].$3}…',
+                    style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${(progress * 100).round()}%',
+                    style: const TextStyle(color: EcoColors.lime, fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
+                ]),
+                const SizedBox(height: 10),
+                _ShimmerBar(progress: progress, phase: _ticker.value),
+                const SizedBox(height: 10),
+                Text(
+                  '${elapsed.floor()} s',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
+                ),
+              ]),
+            ),
+          ]);
+        },
+      );
+}
+
+/// Progress bar with a light band sweeping across the filled part.
+class _ShimmerBar extends StatelessWidget {
+  const _ShimmerBar({required this.progress, required this.phase});
+
+  final double progress;
+
+  /// 0-1, moves the light band.
+  final double phase;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: SizedBox(
+          height: 10,
+          child: LayoutBuilder(
+            builder: (context, box) {
+              final filled = box.maxWidth * progress.clamp(0, 1);
+              return Stack(children: [
+                Positioned.fill(child: ColoredBox(color: Colors.white.withValues(alpha: 0.1))),
+                Positioned(left: 0, top: 0, bottom: 0, width: filled, child: const ColoredBox(color: EcoColors.lime)),
+                Positioned(
+                  left: filled * phase - 40,
+                  top: 0,
+                  bottom: 0,
+                  width: 40,
+                  child: ColoredBox(color: Colors.white.withValues(alpha: filled > 40 ? 0.35 : 0)),
+                ),
+              ]);
+            },
           ),
         ),
       );

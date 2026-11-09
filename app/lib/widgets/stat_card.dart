@@ -15,6 +15,7 @@ class StatCard extends StatelessWidget {
     this.valueColor,
     this.progress,
     this.highlight = false,
+    this.loading = false,
   });
 
   final IconData icon;
@@ -29,6 +30,9 @@ class StatCard extends StatelessWidget {
 
   /// Solid accent card with white text, for the screen's key number.
   final bool highlight;
+
+  /// Shows a spinner and a moving bar, e.g. while a bottle is processed.
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +67,15 @@ class StatCard extends StatelessWidget {
                       color: highlight ? Colors.white.withValues(alpha: 0.18) : color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(icon, size: 18, color: highlight ? Colors.white : color),
+                    child: loading
+                        ? Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: highlight ? Colors.white : color,
+                            ),
+                          )
+                        : Icon(icon, size: 18, color: highlight ? Colors.white : color),
                   ),
                 ]),
                 const SizedBox(height: 8),
@@ -94,7 +106,17 @@ class StatCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (progress != null) ...[
+                if (loading) ...[
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      minHeight: 5,
+                      color: highlight ? Colors.white : color,
+                      backgroundColor: highlight ? Colors.white.withValues(alpha: 0.2) : EcoColors.field,
+                    ),
+                  ),
+                ] else if (progress != null) ...[
                   const SizedBox(height: 10),
                   TweenAnimationBuilder<double>(
                     tween: Tween(end: progress!.clamp(0, 1)),

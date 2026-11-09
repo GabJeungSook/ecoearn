@@ -205,6 +205,7 @@ class _LiveScreenState extends State<LiveScreen> {
           detail: processingUid == null ? 'Waiting for a card tap' : '$processingUid · Processing bottle…',
           valueColor: processingUid != null && widget.students.byUid(processingUid) == null ? EcoColors.amber : null,
           highlight: true,
+          loading: processingUid != null,
         ),
         StatCard(
           icon: Icons.scale,
