@@ -108,11 +108,14 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
     }
   }
 
+  // Also fixes a connection to the wrong port (e.g. the laptop's own COM1,
+  // picked on the admin Live screen): it looks connected but never hears a card.
   void _connectIfNeeded() {
-    if (widget.connection.isConnected) return;
     try {
-      final port = SerialConnection.listPorts().where((p) => p.looksLikeEsp32).firstOrNull;
-      if (port != null) widget.connection.connect(port.name);
+      final esp32Ports = SerialConnection.listPorts().where((p) => p.looksLikeEsp32).map((p) => p.name).toList();
+      final connection = widget.connection;
+      if (connection.isConnected && esp32Ports.contains(connection.portName)) return;
+      if (esp32Ports.isNotEmpty) connection.connect(esp32Ports.first);
     } catch (e) {
       debugPrint('Could not list serial ports: $e'); // try again on the next tick
     }
@@ -207,7 +210,7 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
           Text('Recycle plastic bottles, earn points', style: TextStyle(color: EcoColors.muted, fontSize: 14)),
         ]),
         const Spacer(),
-        _StatusPill(connected: connected, demo: widget.simulator.running),
+        _StatusPill(connected: connected, port: widget.connection.portName, demo: widget.simulator.running),
         const SizedBox(width: 28),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text.rich(
@@ -487,9 +490,10 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
 const _weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.connected, required this.demo});
+  const _StatusPill({required this.connected, required this.port, required this.demo});
 
   final bool connected;
+  final String? port;
   final bool demo;
 
   @override
@@ -497,7 +501,7 @@ class _StatusPill extends StatelessWidget {
     final (color, textColor, text) = demo
         ? (EcoColors.sky, const Color(0xFF1E3A8A), 'Demo mode')
         : connected
-            ? (EcoColors.emerald, EcoColors.forest, 'Machine ready')
+            ? (EcoColors.emerald, EcoColors.forest, 'Machine ready · $port')
             : (EcoColors.amber, const Color(0xFF92400E), 'Connecting to machine…');
     return AnimatedContainer(
       duration: Motion.medium,
