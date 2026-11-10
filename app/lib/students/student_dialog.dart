@@ -6,6 +6,9 @@ import '../data/student.dart';
 import '../data/student_repository.dart';
 import '../serial/device_event.dart';
 import '../serial/serial_connection.dart';
+import '../theme/app_theme.dart';
+import '../widgets/page_parts.dart';
+import '../widgets/stat_card.dart';
 
 /// Add or edit a student. The card can be typed in or read by tapping it on
 /// the machine's RFID reader.
@@ -113,70 +116,114 @@ class _StudentDialogState extends State<StudentDialog> {
   @override
   Widget build(BuildContext context) {
     final connected = widget.connection.isConnected;
+    final editing = widget.student != null;
     return AlertDialog(
-      title: Text(widget.student == null ? 'Add student' : 'Edit student'),
+      titlePadding: const EdgeInsets.fromLTRB(28, 26, 28, 0),
+      contentPadding: const EdgeInsets.fromLTRB(28, 22, 28, 8),
+      actionsPadding: const EdgeInsets.fromLTRB(28, 12, 28, 24),
+      title: Row(children: [
+        IconBadge(icon: editing ? Icons.edit_outlined : Icons.person_add_alt_1_outlined, color: EcoColors.emerald),
+        const SizedBox(width: 14),
+        Text(editing ? 'Edit student' : 'Add student',
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+      ]),
       content: SizedBox(
-        width: 440,
+        width: 460,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _studentNo,
-              autofocus: widget.student == null,
-              decoration: const InputDecoration(labelText: 'Student ID number *'),
+            LabeledField(
+              label: 'Student ID number',
+              required: true,
+              child: TextField(
+                controller: _studentNo,
+                autofocus: !editing,
+                decoration: const InputDecoration(
+                  hintText: 'e.g. 2024-0001',
+                  prefixIcon: Icon(Icons.badge_outlined, size: 20),
+                ),
+              ),
             ),
-            TextField(
-              controller: _name,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Full name *'),
+            LabeledField(
+              label: 'Full name',
+              required: true,
+              child: TextField(
+                controller: _name,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  hintText: 'e.g. Juan Dela Cruz',
+                  prefixIcon: Icon(Icons.person_outline, size: 20),
+                ),
+              ),
             ),
-            TextField(
-              controller: _gradeSection,
-              decoration: const InputDecoration(labelText: 'Grade & section', hintText: 'e.g. 12 - STEM A'),
+            LabeledField(
+              label: 'Grade & section',
+              child: TextField(
+                controller: _gradeSection,
+                decoration: const InputDecoration(
+                  hintText: 'e.g. 12 - STEM A',
+                  prefixIcon: Icon(Icons.school_outlined, size: 20),
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
+            LabeledField(
+              label: 'RFID card',
+              helper: _scanning
+                  ? "Tap the card on the machine's reader now…"
+                  : connected
+                      ? 'Tap "Scan card" and hold the card on the reader, or type the UID. Leave empty if no card yet.'
+                      : 'Connect to the machine on the Live screen to scan cards, or type the UID.',
+              child: Row(children: [
                 Expanded(
                   child: TextField(
                     controller: _uid,
-                    decoration: InputDecoration(
-                      labelText: 'RFID card UID',
-                      helperText: _scanning
-                          ? 'Tap the card on the machine\'s reader now…'
-                          : connected
-                              ? 'Leave empty if the student has no card yet.'
-                              : 'Connect to the ESP32 on the Live screen to scan cards.',
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. A3F29B11',
+                      prefixIcon: Icon(Icons.contactless_outlined, size: 20),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                if (_scanning)
-                  OutlinedButton.icon(
-                    onPressed: () => _stopScan(),
-                    icon: const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                    label: const Text('Cancel'),
-                  )
-                else
-                  OutlinedButton.icon(
-                    onPressed: connected ? _startScan : null,
-                    icon: const Icon(Icons.contactless),
-                    label: const Text('Scan card'),
-                  ),
-              ],
+                const SizedBox(width: 10),
+                SizedBox(
+                  height: 52,
+                  child: _scanning
+                      ? OutlinedButton.icon(
+                          onPressed: () => _stopScan(),
+                          icon: const SizedBox.square(
+                              dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                          label: const Text('Cancel'),
+                        )
+                      : OutlinedButton.icon(
+                          onPressed: connected ? _startScan : null,
+                          icon: const Icon(Icons.contactless, size: 18),
+                          label: const Text('Scan card'),
+                        ),
+                ),
+              ]),
             ),
-            if (_error != null) ...[
-              const SizedBox(height: 16),
-              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-            ],
+            if (_error != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: EcoColors.coral.withValues(alpha: 0.07),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.error_outline, color: EcoColors.coral, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(_error!, style: const TextStyle(color: EcoColors.coral))),
+                ]),
+              ),
           ],
         ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(onPressed: _saving ? null : _save, child: const Text('Save')),
+        FilledButton(
+          onPressed: _saving ? null : _save,
+          child: Text(editing ? 'Save changes' : 'Add student'),
+        ),
       ],
     );
   }

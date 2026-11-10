@@ -78,6 +78,18 @@ void main() {
     expect(csv[4][5], 'Unregistered');
   });
 
+  test("one student's record, and the months that have deposits", () async {
+    final juan = (await db.query('students', where: "name = 'Juan'")).single['id'] as int;
+    final all = await reports.deposits(studentId: juan);
+    expect(all, isNotEmpty);
+    expect(all.every((d) => d.studentId == juan), isTrue);
+    final months = await reports.monthsWithDeposits();
+    expect(months.first, isA<(int, int)>());
+    expect(months, contains((2026, 10)));
+    final juanOctober = await reports.deposits(studentId: juan, year: 2026, month: 10);
+    expect(juanOctober.length, lessThanOrEqualTo(all.length));
+  });
+
   test('CSV quotes fields with commas and quotes', () {
     expect(toCsv([
       ['Dela Cruz, Juan', 'say "hi"', 3],

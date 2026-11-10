@@ -63,14 +63,15 @@ ThemeData buildAppTheme() {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         shape: rounded,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        // Small vertical padding: header buttons are 40 px high, and 2 × 16 px left the label 8 px.
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         shape: rounded,
         side: const BorderSide(color: EcoColors.line),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
       ),
     ),
     dialogTheme: DialogThemeData(

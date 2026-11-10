@@ -9,6 +9,7 @@ import '../widgets/brand.dart';
 import '../widgets/page_parts.dart';
 import '../widgets/stat_card.dart';
 import 'student_dialog.dart';
+import 'student_record_screen.dart';
 
 /// Keep in sync with MAX_ITEM_GRAMS in firmware/ecoearn/config.h (scales the deposit bars).
 const _maxItemGrams = 80.0;
@@ -161,6 +162,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   reports: widget.reports,
                   onEdit: widget.readOnly ? null : () => _edit(selected),
                   onDelete: widget.readOnly ? null : () => _delete(selected),
+                  onOpenRecord: () => _openRecord(selected),
                 ),
             ],
           );
@@ -169,7 +171,26 @@ class _StudentsScreenState extends State<StudentsScreen> {
     );
   }
 
-  Widget _row(Student s, {required bool selected}) => RowCard(
+  Future<void> _openRecord(Student student) => Navigator.of(context).push(PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 280),
+        pageBuilder: (_, _, _) => StudentRecordScreen(student: student, reports: widget.reports),
+        transitionsBuilder: (_, animation, _, child) => FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween(begin: const Offset(0.03, 0), end: Offset.zero)
+                .animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+            child: child,
+          ),
+        ),
+      ));
+
+  // Click selects; double-click edits (or opens the record when read-only).
+  Widget _row(Student s, {required bool selected}) => GestureDetector(
+        onDoubleTap: () => widget.readOnly ? _openRecord(s) : _edit(s),
+        child: _rowCard(s, selected: selected),
+      );
+
+  Widget _rowCard(Student s, {required bool selected}) => RowCard(
         selected: selected,
         onTap: () => setState(() => _selectedId = s.id),
         child: Row(children: [
@@ -208,12 +229,14 @@ class _StudentDetail extends StatefulWidget {
     required this.reports,
     required this.onEdit,
     required this.onDelete,
+    required this.onOpenRecord,
   });
 
   final Student student;
   final Reports reports;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final VoidCallback onOpenRecord;
 
   @override
   State<_StudentDetail> createState() => _StudentDetailState();
@@ -246,13 +269,37 @@ class _StudentDetailState extends State<_StudentDetail> {
                 Expanded(
                   child: Text(s.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600)),
                 ),
-                if (widget.onEdit != null)
-                  IconButton(tooltip: 'Edit', onPressed: widget.onEdit, icon: const Icon(Icons.edit_outlined, size: 20)),
                 if (widget.onDelete != null)
                   IconButton(tooltip: 'Delete', onPressed: widget.onDelete, icon: const Icon(Icons.delete_outline, size: 20)),
               ]),
               const SizedBox(height: 4),
               Text('${s.points} points', style: const TextStyle(fontSize: 16, color: EcoColors.emerald, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 18),
+              Row(children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 42,
+                    child: FilledButton.icon(
+                      onPressed: widget.onOpenRecord,
+                      icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                      label: const Text('Full record'),
+                    ),
+                  ),
+                ),
+                if (widget.onEdit != null) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: SizedBox(
+                      height: 42,
+                      child: OutlinedButton.icon(
+                        onPressed: widget.onEdit,
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        label: const Text('Edit details'),
+                      ),
+                    ),
+                  ),
+                ],
+              ]),
               const SizedBox(height: 28),
               const SmallLabel('Summary'),
               const SizedBox(height: 12),

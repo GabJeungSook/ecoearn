@@ -4,11 +4,15 @@ import 'package:flutter/material.dart';
 import '../data/csv_export.dart';
 import '../data/reports.dart';
 import '../data/student_repository.dart';
+import '../students/student_record_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/page_parts.dart';
 import '../widgets/stat_card.dart';
+import 'transaction_table.dart';
 
 enum _Export { monthlySummary, monthDeposits, allDeposits }
+
+enum _ResultFilter { all, accepted, rejected }
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({
@@ -38,6 +42,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
   late int _year;
   late int _month;
   MonthlyReport? _report;
+  List<DepositRecord>? _deposits; // the month's deposits, newest first
+
+  bool _showTransactions = false;
+  String _query = '';
+  _ResultFilter _filter = _ResultFilter.all;
 
   @override
   void initState() {
@@ -56,9 +65,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Future<void> _load() async {
-    final report = await widget.reports.monthly(_year, _month);
-    if (mounted && report.year == _year && report.month == _month) {
-      setState(() => _report = report);
+    final (year, month) = (_year, _month);
+    final report = await widget.reports.monthly(year, month);
+    final deposits = await widget.reports.deposits(year: year, month: month);
+    if (mounted && year == _year && month == _month) {
+      setState(() {
+        _report = report;
+        _deposits = deposits.reversed.toList();
+      });
     }
   }
 
@@ -68,6 +82,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       _year = first.year;
       _month = first.month;
       _report = null;
+      _deposits = null;
     });
     _load();
   }
@@ -119,9 +134,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           PageHeader(
-            overline: widget.subtitle ?? 'Monthly report',
+            overline: widget.subtitle ?? (_showTransactions ? 'All transactions' : 'Monthly report'),
             title: '${monthNames[_month - 1]} $_year',
             actions: [
+              SegmentedButton<bool>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: false, icon: Icon(Icons.leaderboard_outlined, size: 18), label: Text('Summary')),
+                  ButtonSegment(value: true, icon: Icon(Icons.receipt_long_outlined, size: 18), label: Text('Transactions')),
+                ],
+                selected: {_showTransactions},
+                onSelectionChanged: (v) => setState(() => _showTransactions = v.first),
+              ),
+              const SizedBox(width: 8),
               SquareIconButton(icon: Icons.chevron_left, tooltip: 'Previous month', onPressed: () => _shiftMonth(-1)),
               SquareIconButton(
                 icon: Icons.chevron_right,
@@ -201,7 +226,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ),
             ),
             const SizedBox(height: 28),
-            Expanded(child: _table(report)),
+            Expanded(child: _showTransactions ? _transactions() : _table(report)),
           ],
         ],
       ),
@@ -251,6 +276,84 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ]),
               );
             },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ---------- Transactions: every deposit in the month, any student ----------
+
+  List<DepositRecord> get _filteredDeposits {
+    final q = _query.trim().toLowerCase();
+    return [
+      for (final d in _deposits ?? const <DepositRecord>[])
+        if ((_filter == _ResultFilter.all ||
+                (_filter == _ResultFilter.accepted) == (d.rejectReason == null)) &&
+            (q.isEmpty ||
+                (d.name?.toLowerCase().contains(q) ?? false) ||
+                (d.studentNo?.toLowerCase().contains(q) ?? false) ||
+                (d.gradeSection?.toLowerCase().contains(q) ?? false) ||
+                d.cardUid.toLowerCase().contains(q)))
+          d,
+    ];
+  }
+
+  void _openRecord(DepositRecord d) {
+    final student = widget.students.students.where((s) => s.id == d.studentId).firstOrNull;
+    if (student == null) return;
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => StudentRecordScreen(student: student, reports: widget.reports),
+    ));
+  }
+
+  Widget _transactions() {
+    final shown = _filteredDeposits;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(32, 0, 32, 16),
+          child: Row(children: [
+            SizedBox(
+              width: 320,
+              child: TextField(
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.search, size: 20),
+                  hintText: 'Search name, ID, section, card',
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(vertical: 11),
+                ),
+                onChanged: (v) => setState(() => _query = v),
+              ),
+            ),
+            const SizedBox(width: 12),
+            for (final (f, label) in const [
+              (_ResultFilter.all, 'All'),
+              (_ResultFilter.accepted, 'Accepted'),
+              (_ResultFilter.rejected, 'Rejected'),
+            ])
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: Text(label),
+                  selected: _filter == f,
+                  showCheckmark: false,
+                  onSelected: (_) => setState(() => _filter = f),
+                ),
+              ),
+            const Spacer(),
+            SmallLabel("${shown.length} of ${_deposits?.length ?? 0} deposits · click a row for the student's record"),
+          ]),
+        ),
+        Expanded(
+          child: TransactionTable(
+            deposits: shown,
+            showStudent: true,
+            onStudentTap: _openRecord,
+            emptyMessage: (_deposits?.isEmpty ?? true)
+                ? 'No deposits in ${monthNames[_month - 1]} $_year.'
+                : 'No deposits match.',
           ),
         ),
       ],

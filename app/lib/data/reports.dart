@@ -84,6 +84,7 @@ class DepositRecord {
   final Map<String, Object?> row;
 
   int get id => row['id'] as int;
+  int? get studentId => row['student_id'] as int?;
   DateTime get occurredAt => DateTime.parse(row['occurred_at'] as String);
   String get cardUid => row['rfid_uid'] as String;
   String? get studentNo => row['student_no'] as String?;
@@ -181,14 +182,36 @@ class Reports {
   }
 
   /// Every deposit, oldest first. Pass [year] and [month] for just that month.
-  Future<List<DepositRecord>> deposits({int? year, int? month}) async {
-    final inMonth = year != null && month != null;
+  /// Every processed bottle (each one a card tap), oldest first. Optionally
+  /// only one month, and/or only one student.
+  Future<List<DepositRecord>> deposits({int? year, int? month, int? studentId}) async {
+    final where = <String>[];
+    final args = <Object>[];
+    if (year != null && month != null) {
+      where.add('d.occurred_at >= ? AND d.occurred_at < ?');
+      args.addAll([_monthStart(year, month), _nextMonthStart(year, month)]);
+    }
+    if (studentId != null) {
+      where.add('d.student_id = ?');
+      args.add(studentId);
+    }
     final rows = await _db.rawQuery('''
       SELECT d.*, s.student_no, s.name, s.grade_section
       FROM deposits d LEFT JOIN students s ON s.id = d.student_id
-      ${inMonth ? 'WHERE d.occurred_at >= ? AND d.occurred_at < ?' : ''}
-      ORDER BY d.occurred_at, d.id''',
-        inMonth ? [_monthStart(year, month), _nextMonthStart(year, month)] : null);
+      ${where.isEmpty ? '' : 'WHERE ${where.join(' AND ')}'}
+      ORDER BY d.occurred_at, d.id''', args);
     return rows.map(DepositRecord.new).toList();
+  }
+
+  /// The months (newest first) that have at least one deposit, optionally for one student.
+  Future<List<(int year, int month)>> monthsWithDeposits({int? studentId}) async {
+    final rows = await _db.rawQuery('''
+      SELECT DISTINCT substr(occurred_at, 1, 7) AS ym FROM deposits
+      ${studentId == null ? '' : 'WHERE student_id = ?'}
+      ORDER BY ym DESC''', [?studentId]);
+    return [
+      for (final r in rows)
+        (int.parse((r['ym'] as String).substring(0, 4)), int.parse((r['ym'] as String).substring(5, 7))),
+    ];
   }
 }

@@ -184,3 +184,33 @@ class EmptyState extends StatelessWidget {
         ]),
       );
 }
+
+/// A form field with its label above it (and an optional hint below), with
+/// even spacing between fields.
+class LabeledField extends StatelessWidget {
+  const LabeledField({super.key, required this.label, required this.child, this.required = false, this.helper});
+
+  final String label;
+  final Widget child;
+  final bool required;
+  final String? helper;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 18),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text.rich(
+            TextSpan(text: label, children: [
+              if (required) const TextSpan(text: ' *', style: TextStyle(color: EcoColors.coral)),
+            ]),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          child,
+          if (helper != null) ...[
+            const SizedBox(height: 6),
+            Text(helper!, style: const TextStyle(fontSize: 12, color: EcoColors.muted)),
+          ],
+        ]),
+      );
+}

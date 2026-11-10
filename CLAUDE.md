@@ -172,6 +172,11 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
          sync_id then student_no, details updated only from a file newer than all earlier ones,
          nothing deleted. Files from before v3 can't be merged (asks for a new export).
        - No SD card: admin exports .ecoearn -> flash drive -> officer imports.
+4i. [x] Records: Students panel "Full record" -> StudentRecordScreen (every deposit/tap with
+       date, time, weight, points, rate, result; month filter; per-student CSV). Reports screen
+       Summary | Transactions toggle (all students, search, accepted/rejected filter, click row ->
+       student record). Student form: labeled fields (LabeledField), "Edit details" button,
+       double-click a student to edit.
 4e. [ ] Fine deductions (needs eligible fines + points-to-peso rate from the group)
 5. [ ] After soldering: wire + test MFRC522, then HX711 (calibrate with known weights)
        MFRC522 wiring (ESP32 left column, USB up): SDA→D5, SCK→D18, MOSI→D23,
