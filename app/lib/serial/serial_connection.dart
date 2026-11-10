@@ -24,21 +24,20 @@ class PortInfo {
 class SerialConnection extends ChangeNotifier {
   static const baudRate = 115200;
 
-  // The background reader wakes at least this often, so it has let go of a
-  // port this long after being stopped.
-  static const _readerTimeout = Duration(milliseconds: 200);
-  static const _readerStopped = Duration(milliseconds: 600);
+  static const _pollEvery = Duration(milliseconds: 50);
 
   final _events = StreamController<DeviceEvent>.broadcast();
   final _notes = StreamController<String>.broadcast();
   SerialPort? _port;
-  SerialPortReader? _reader;
-  StreamSubscription<String>? _lines;
+  // Not libserialport's SerialPortReader: its background isolate loops without
+  // ever returning to its event loop, so it can't be stopped and kept reading
+  // the port after Disconnect freed it ("Debug Assertion Failed" heap crash).
+  // A timer on this isolate reads whatever has arrived instead.
+  Timer? _poll;
+  StreamController<List<int>>? _bytes;
 
   String? _portName;
   String? _error;
-  Future<void> _closing = Future.value();
-  bool _connecting = false;
 
   Stream<DeviceEvent> get events => _events.stream;
 
@@ -64,21 +63,10 @@ class SerialConnection extends ChangeNotifier {
     }
   }
 
-  /// Opens [name]. Waits for a port being closed to be fully released first.
-  Future<void> connect(String name) async {
-    if (_connecting) return;
-    _connecting = true;
-    try {
-      _close();
-      _error = null;
-      await _closing;
-      _open(name);
-    } finally {
-      _connecting = false;
-    }
-  }
+  void connect(String name) {
+    _close();
+    _error = null;
 
-  void _open(String name) {
     final port = SerialPort(name);
     if (!port.openReadWrite()) {
       final reason = SerialPort.lastError?.message ?? 'unknown error';
@@ -102,16 +90,11 @@ class SerialConnection extends ChangeNotifier {
 
     _port = port;
     _portName = name;
-    _reader = SerialPortReader(port, timeout: _readerTimeout.inMilliseconds);
-    _lines = _reader!.stream
-        .cast<List<int>>()
-        .transform(const Utf8Decoder(allowMalformed: true))
-        .transform(const LineSplitter())
-        .listen(
-          _onLine,
-          onError: (Object e) => _fail('Lost connection to $name ($e). Is the USB cable unplugged?'),
-          onDone: () => _fail('Lost connection to $name.'),
-        );
+    final bytes = StreamController<List<int>>();
+    _bytes = bytes;
+    // The line subscription ends by itself when the byte stream is closed.
+    bytes.stream.transform(const Utf8Decoder(allowMalformed: true)).transform(const LineSplitter()).listen(_onLine);
+    _poll = Timer.periodic(_pollEvery, (_) => _readAvailable(port, name));
     notifyListeners();
   }
 
@@ -152,23 +135,28 @@ class SerialConnection extends ChangeNotifier {
     notifyListeners();
   }
 
-  // The reader runs in a background isolate that may be inside a native read
-  // when it is stopped. Freeing the port at once made it use freed memory (a
-  // "Debug Assertion Failed" heap crash on Disconnect), so the port is closed
-  // only after the reader has certainly stopped.
-  void _close() {
-    unawaited(_lines?.cancel());
-    _lines = null;
-    _reader?.close();
-    _reader = null;
-    final port = _port;
-    _port = null;
-    if (port != null) {
-      _closing = Future.delayed(_readerStopped, () {
-        port.close();
-        port.dispose();
-      });
+  void _readAvailable(SerialPort port, String name) {
+    final waiting = port.bytesAvailable; // negative when the port is gone (cable unplugged)
+    if (waiting < 0) {
+      _fail('Lost connection to $name. Is the USB cable unplugged?');
+      return;
     }
+    if (waiting == 0) return;
+    try {
+      _bytes?.add(port.read(waiting));
+    } on SerialPortError catch (e) {
+      _fail('Lost connection to $name ($e). Is the USB cable unplugged?');
+    }
+  }
+
+  void _close() {
+    _poll?.cancel();
+    _poll = null;
+    unawaited(_bytes?.close());
+    _bytes = null;
+    _port?.close();
+    _port?.dispose();
+    _port = null;
   }
 
   @override
