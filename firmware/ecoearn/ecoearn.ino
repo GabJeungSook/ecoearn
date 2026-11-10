@@ -199,6 +199,7 @@ void tipIntoBin() {
   Serial.println("# Take the item off the scale.");
   unsigned long start = millis();
   while (millis() - start < REMOVE_ITEM_MS) {
+    digitalWrite(STATUS_LED_PIN, (millis() / 500) % 2);   // blinking again = take it off
     float grams = readGramsOnce();
     if (!isnan(grams) && grams < MIN_ITEM_GRAMS) break;
   }

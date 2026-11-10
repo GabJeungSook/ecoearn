@@ -181,5 +181,10 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
        then solid = put item on); reader auto-restarts if its antenna turned off (cards
        were missed until a reboot). 0.2.7: negative drift no longer = "scale failed";
        8 samples per reading, 5 g tolerances. Bench rig was a load cell lying loose on a
-       running PC (vibration, bar tilting): needs a firm, screwed mount. Next: test 0.2.7.
+       running PC (vibration, bar tilting): needs a firm, screwed mount.
+       2026-11-10 WORKING: weight must go on the FREE END over its 2 screw holes (the
+       middle is the flexing part; coins there gave a tiny, even negative signal). Calibrated
+       on the tip: 383.69 counts/g, 72 g reads 72.0 +/-0.2 g. Test: 2 empty -> no_item,
+       3x coins -> 71/72/71 g -> 7 pts. 0.2.8: LED blinks while waiting for the item to be
+       taken off (fake mechanism). Reader self-restart fired after long waits (harmless).
 7. [ ] SD logging + RTC, LCD, then mechanism (actuator, servos, IR, lid switch)
