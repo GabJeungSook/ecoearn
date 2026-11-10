@@ -39,9 +39,9 @@ class _OfficerShellState extends State<OfficerShell> {
     ]);
     if (file == null) return;
 
-    final error = await widget.data.import(file.path);
+    final result = await widget.data.import(file.path);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error ?? 'Data imported.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.summary)));
     }
   }
 
@@ -58,7 +58,7 @@ class _OfficerShellState extends State<OfficerShell> {
           final data = widget.data;
           final students = data.students;
           final reports = data.reports;
-          final source = data.exportedAt == null ? '' : 'Data exported ${_date(data.exportedAt!)}';
+          final source = data.exportedAt == null ? '' : 'Newest data exported ${_date(data.exportedAt!)}';
 
           return Scaffold(
             body: Row(
@@ -69,7 +69,7 @@ class _OfficerShellState extends State<OfficerShell> {
                   onSelected: data.hasData ? (i) => setState(() => _screen = i) : null,
                   action: SquareIconButton(
                     icon: Icons.file_open_outlined,
-                    tooltip: 'Import data file',
+                    tooltip: 'Import a data file (adds it to the data already here)',
                     onPressed: _import,
                     primary: true,
                   ),
@@ -82,8 +82,8 @@ class _OfficerShellState extends State<OfficerShell> {
                   child: students == null || reports == null
                       ? _noData(context)
                       : ScreenSwitcher(
-                          // A new import replaces the screens, so they show the new data.
-                          key: ValueKey(data.exportedAt),
+                          // Each import rebuilds the screens, so they show the merged data.
+                          key: ValueKey(data.revision),
                           index: _screen,
                           children: [
                             ReportsScreen(reports: reports, students: students, subtitle: source),
@@ -113,7 +113,9 @@ class _OfficerShellState extends State<OfficerShell> {
             const SizedBox(height: 16),
             Text('No data imported yet', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
-            const Text('Insert the SD card or flash drive from the admin, then open the .ecoearn file on it.'),
+            const Text('Plug in the flash drive from the admin, then open the .ecoearn file on it.\n'
+                'Each new file is added to the data already here.',
+                textAlign: TextAlign.center),
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: _import,

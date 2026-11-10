@@ -8,9 +8,20 @@ import 'package:ecoearn_app/data/app_database.dart';
 import 'package:ecoearn_app/data/officer_data.dart';
 import 'package:ecoearn_app/data/student.dart';
 import 'package:ecoearn_app/data/student_repository.dart';
+import 'package:ecoearn_app/data/sync_id.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+Future<void> addDeposit(Database db, int studentId, String card, {required int points}) => db.insert('deposits', {
+      'occurred_at': '2026-10-27T10:00:00.000',
+      'rfid_uid': card,
+      'student_id': studentId,
+      'grams': points * 10.0 + 4,
+      'points': points,
+      'sync_id': newSyncId(),
+      'grams_per_point': 10,
+    });
 
 void main() {
   late Database db;
@@ -87,13 +98,7 @@ void main() {
     await auth.save(username: 'admin', displayName: 'Gab', role: Role.admin, password: 'secret123');
     final students = StudentRepository(db);
     await students.save(const Student(studentNo: '2024-001', name: 'Juan', rfidUid: 'A3F29B11'));
-    await db.insert('deposits', {
-      'occurred_at': '2026-10-27T10:00:00.000',
-      'rfid_uid': 'A3F29B11',
-      'student_id': students.byUid('A3F29B11')!.id,
-      'grams': 39.0,
-      'points': 3,
-    });
+    await addDeposit(db, students.byUid('A3F29B11')!.id!, 'A3F29B11', points: 3);
 
     final folder = await Directory.systemTemp.createTemp('ecoearn_test');
     addTearDown(() => folder.delete(recursive: true));
@@ -107,16 +112,69 @@ void main() {
     expect(tables, isNot(contains('accounts')));
 
     final officer = OfficerData(p.join(folder.path, 'officer'));
-    expect(await officer.import(file), isNull);
-    expect(officer.hasData, isTrue);
+    final first = await officer.import(file);
+    expect(first.error, isNull);
+    expect((first.studentsAdded, first.depositsAdded), (1, 1));
     expect(officer.students!.byUid('A3F29B11')!.points, 3);
     expect((await officer.reports!.monthly(2026, 10)).points, 3);
 
-    // Re-importing replaces the copy; a non-EcoEarn file is refused.
-    expect(await officer.import(file), isNull);
+    // A non-EcoEarn file is refused and the data stays.
     final junk = File(p.join(folder.path, 'junk.ecoearn'))..writeAsStringSync('not a database');
-    expect(await officer.import(junk.path), contains('not an EcoEarn data file'));
+    expect((await officer.import(junk.path)).error, contains('not an EcoEarn data file'));
     expect(officer.hasData, isTrue);
     officer.dispose();
+  });
+
+  test('officer imports merge: new records added, nothing duplicated or lost', () async {
+    final folder = await Directory.systemTemp.createTemp('ecoearn_merge');
+    addTearDown(() => folder.delete(recursive: true));
+    final students = StudentRepository(db);
+    await students.save(const Student(studentNo: '2024-001', name: 'Juan', rfidUid: 'A3F29B11'));
+    final juanId = students.byUid('A3F29B11')!.id!;
+    await addDeposit(db, juanId, 'A3F29B11', points: 3);
+    final first = p.join(folder.path, 'first.ecoearn');
+    await OfficerDataFile.export(db, first);
+
+    final officer = OfficerData(p.join(folder.path, 'officer'));
+    addTearDown(officer.dispose);
+    await officer.import(first);
+
+    // The same file again adds nothing.
+    final again = await officer.import(first);
+    expect((again.depositsAdded, again.depositsAlreadyThere, again.studentsAdded), (0, 1, 0));
+
+    // Later on the machine: another deposit, a new student, Juan renamed.
+    await addDeposit(db, juanId, 'A3F29B11', points: 2);
+    await students.save(const Student(studentNo: '2024-002', name: 'Maria', rfidUid: '79EEB9A2'));
+    await addDeposit(db, students.byUid('79EEB9A2')!.id!, '79EEB9A2', points: 5);
+    await students.save(Student(id: juanId, studentNo: '2024-001', name: 'Juan Dela Cruz', rfidUid: 'A3F29B11'));
+    await Future<void>.delayed(const Duration(milliseconds: 5)); // a later export time
+    final second = p.join(folder.path, 'second.ecoearn');
+    await OfficerDataFile.export(db, second);
+
+    final merged = await officer.import(second);
+    expect((merged.depositsAdded, merged.depositsAlreadyThere), (2, 1));
+    expect((merged.studentsAdded, merged.studentsUpdated), (1, 1));
+    expect(officer.students!.byUid('A3F29B11')!.points, 5);
+    expect(officer.students!.byUid('A3F29B11')!.name, 'Juan Dela Cruz');
+    expect(officer.students!.byUid('79EEB9A2')!.points, 5);
+
+    // An older file doesn't undo the rename.
+    await officer.import(first);
+    expect(officer.students!.byUid('A3F29B11')!.name, 'Juan Dela Cruz');
+
+    // A second laptop registered the same student (same ID number) on its own.
+    final other = await AppDatabase.open(p.join(folder.path, 'laptop2.db')); // in-memory DBs are shared
+    final otherStudents = StudentRepository(other);
+    await otherStudents.save(const Student(studentNo: '2024-001', name: 'Juan Dela Cruz', rfidUid: 'A3F29B11'));
+    await addDeposit(other, otherStudents.byUid('A3F29B11')!.id!, 'A3F29B11', points: 4);
+    final third = p.join(folder.path, 'third.ecoearn');
+    await OfficerDataFile.export(other, third);
+    await other.close();
+
+    final fromOther = await officer.import(third);
+    expect((fromOther.depositsAdded, fromOther.studentsAdded), (1, 0));
+    expect(officer.students!.students, hasLength(2));
+    expect(officer.students!.byUid('A3F29B11')!.points, 9);
   });
 }

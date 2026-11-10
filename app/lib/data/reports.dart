@@ -93,6 +93,9 @@ class DepositRecord {
   int get points => row['points'] as int;
   String? get rejectReason => row['reject_reason'] as String?;
   String get source => row['source'] as String;
+
+  /// The points rate the deposit was earned at; null in data from before it was recorded.
+  int? get gramsPerPoint => row['grams_per_point'] as int?;
 }
 
 // occurred_at is stored as ISO 8601 text, so date ranges compare as strings.

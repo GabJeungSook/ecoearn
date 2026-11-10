@@ -24,14 +24,23 @@ sealed class DeviceEvent {
     }
 
     return switch (decoded) {
-      {'event': 'boot', 'version': String version} =>
-        BootEvent(version: version, receivedAt: receivedAt),
+      {'event': 'boot', 'version': String version} => BootEvent(
+          version: version,
+          gramsPerPoint: decoded['grams_per_point'] is int ? decoded['grams_per_point'] as int : null,
+          receivedAt: receivedAt,
+        ),
       {'event': 'card', 'uid': String uid} =>
         CardEvent(uid: uid, receivedAt: receivedAt),
       {'event': 'scan', 'uid': String uid} =>
         ScanEvent(uid: uid, receivedAt: receivedAt),
       {'event': 'weight', 'uid': String uid, 'grams': num grams, 'points': int points} =>
-        WeightEvent(uid: uid, grams: grams.toDouble(), points: points, receivedAt: receivedAt),
+        WeightEvent(
+          uid: uid,
+          grams: grams.toDouble(),
+          points: points,
+          gramsPerPoint: decoded['grams_per_point'] is int ? decoded['grams_per_point'] as int : null,
+          receivedAt: receivedAt,
+        ),
       {'event': 'reject', 'uid': String uid, 'reason': String reason, 'grams': num grams} =>
         RejectEvent(
           uid: uid,
@@ -51,8 +60,12 @@ sealed class DeviceEvent {
 
 /// The ESP32 (re)started.
 class BootEvent extends DeviceEvent {
-  BootEvent({required this.version, super.receivedAt, super.simulated});
+  BootEvent({required this.version, this.gramsPerPoint, super.receivedAt, super.simulated});
   final String version;
+
+  /// The points rate the machine is using (firmware 0.3.0+), so the app can
+  /// correct it if it differs from the app's setting.
+  final int? gramsPerPoint;
 }
 
 /// A student tapped their RFID card; a bottle is now being processed.
@@ -70,10 +83,20 @@ class ScanEvent extends DeviceEvent {
 
 /// A bottle was crushed, drained and weighed, and points were awarded.
 class WeightEvent extends DeviceEvent {
-  WeightEvent({required this.uid, required this.grams, required this.points, super.receivedAt, super.simulated});
+  WeightEvent({
+    required this.uid,
+    required this.grams,
+    required this.points,
+    this.gramsPerPoint,
+    super.receivedAt,
+    super.simulated,
+  });
   final String uid;
   final double grams;
   final int points;
+
+  /// The points rate this deposit was computed with (firmware 0.3.0+).
+  final int? gramsPerPoint;
 }
 
 /// A deposit earned no points. [reason] is one of the firmware's reject codes:

@@ -13,8 +13,10 @@
 //   tare       zero the scale (it must be empty)
 //   cal 74     calibrate: tare first, put a known weight on, then cal <its grams>
 //   weigh      print the current weight (to check the calibration)
+//   rate 10    points rate: 1 point per 10 g, saved in flash (the app sends it)
 
 #include "config.h"
+#include <Preferences.h>
 
 #if !FAKE_RFID
 #include <SPI.h>
@@ -24,7 +26,6 @@ MFRC522 rfid(RFID_SDA_PIN, RFID_RST_PIN);
 
 #if !FAKE_SCALE
 #include <HX711.h>
-#include <Preferences.h>
 HX711 scale;
 float gramsFactor = 0;   // raw counts per gram (saved by "cal" or scale_test); 0 = not calibrated
 #endif
@@ -44,8 +45,13 @@ unsigned long registerStarted = 0;
 
 // ---------- Messages to the laptop ----------
 
+// Points rate: 1 point per this many grams. Set by the laptop ("rate" command)
+// and kept in flash, so the machine uses it even without the laptop.
+int gramsPerPoint = GRAMS_PER_POINT;
+
 void sendBoot() {
-  Serial.printf("{\"event\":\"boot\",\"version\":\"%s\"}\n", FIRMWARE_VERSION);
+  Serial.printf("{\"event\":\"boot\",\"version\":\"%s\",\"grams_per_point\":%d}\n",
+                FIRMWARE_VERSION, gramsPerPoint);
 }
 
 void sendCard(const String& uid) {
@@ -57,8 +63,8 @@ void sendScan(const String& uid) {
 }
 
 void sendWeight(const String& uid, int grams, int points) {
-  Serial.printf("{\"event\":\"weight\",\"uid\":\"%s\",\"grams\":%d,\"points\":%d}\n",
-                uid.c_str(), grams, points);
+  Serial.printf("{\"event\":\"weight\",\"uid\":\"%s\",\"grams\":%d,\"points\":%d,\"grams_per_point\":%d}\n",
+                uid.c_str(), grams, points, gramsPerPoint);
 }
 
 // reason: "bin_full", "mechanism", "no_item" or "too_heavy"
@@ -225,7 +231,7 @@ int readBinLevel() {
 // ---------- Point allocation ----------
 
 int pointsForGrams(int grams) {
-  return grams / GRAMS_PER_POINT;
+  return grams / gramsPerPoint;
 }
 
 // ---------- One full transaction ----------
@@ -301,13 +307,25 @@ void handleCommand(String line) {
 #if !FAKE_SCALE
     calibrate(line.substring(4).toFloat());
 #endif
+  } else if (line.startsWith("rate ")) {
+    int grams = line.substring(5).toInt();
+    if (grams < 1 || grams > 1000) {
+      Serial.println("# Rate must be 1 to 1000 grams per point.");
+    } else {
+      gramsPerPoint = grams;
+      Preferences settings;
+      settings.begin("points");
+      settings.putInt("gpp", grams);
+      settings.end();
+      Serial.printf("# Points: 1 per %d g (saved).\n", grams);
+    }
   } else if (line == "weigh") {
 #if !FAKE_SCALE
     if (gramsFactor == 0) Serial.println("# Scale not calibrated: tare, put a known weight on, then cal <grams>");
     else Serial.printf("# Weight: %.1f g\n", readGramsOnce());
 #endif
   } else if (line.length() > 0) {
-    Serial.println("# Unknown command. Commands: register, cancel, tare, cal <grams>, weigh");
+    Serial.println("# Unknown command. Commands: register, cancel, tare, cal <grams>, weigh, rate <grams>");
   }
 }
 
@@ -318,6 +336,11 @@ void setup() {
   Serial.setTimeout(100);
   pinMode(STATUS_LED_PIN, OUTPUT);
   delay(500);   // let the laptop's Serial Monitor catch up after a restart
+
+  Preferences points;
+  points.begin("points", true);
+  gramsPerPoint = points.getInt("gpp", GRAMS_PER_POINT);
+  points.end();
 
 #if !FAKE_RFID
   SPI.begin();

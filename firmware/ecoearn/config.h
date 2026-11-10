@@ -3,7 +3,7 @@
 
 #pragma once
 
-#define FIRMWARE_VERSION "0.2.8"
+#define FIRMWARE_VERSION "0.3.0"
 
 // ---- Fake vs real hardware ----
 // 1 = use a pretend value (hardware not connected yet)
@@ -18,7 +18,7 @@
 
 // ---- Points ----
 // PLACEHOLDER until the group confirms the rate.
-#define GRAMS_PER_POINT 10   // 1 point for every 10 g (decimals are dropped)
+#define GRAMS_PER_POINT 10   // default: 1 point for every 10 g (decimals dropped); the app can change it
 
 // ---- Item checks ----
 #define MIN_ITEM_GRAMS 8     // lighter than this = nothing was deposited (bench drift reached 6 g;

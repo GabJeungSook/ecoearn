@@ -31,7 +31,7 @@ List<List<Object?>> monthlyReportCsv(MonthlyReport report) => [
 /// One row per processed bottle: the raw test data for accuracy and reliability analysis.
 List<List<Object?>> depositsCsv(List<DepositRecord> deposits) => [
       ['Deposit ID', 'Date', 'Time', 'Card UID', 'Student ID', 'Name', 'Grade & section',
-        'Grams', 'Points', 'Status', 'Reject reason', 'Source'],
+        'Grams', 'Points', 'Grams per point', 'Status', 'Reject reason', 'Source'],
       for (final d in deposits)
         [
           d.id,
@@ -43,6 +43,7 @@ List<List<Object?>> depositsCsv(List<DepositRecord> deposits) => [
           d.gradeSection ?? '',
           _grams(d.grams),
           d.points,
+          d.gramsPerPoint ?? '',
           d.rejectReason == null ? 'accepted' : 'rejected',
           d.rejectReason ?? '',
           d.source,

@@ -52,7 +52,7 @@ class AppSidebar extends StatelessWidget {
           const SizedBox(height: 24),
           const EcoLogo(size: 40),
           if (action != null) ...[const SizedBox(height: 20), action!],
-          const SizedBox(height: 36),
+          const SizedBox(height: 24),
           for (final (i, item) in items.indexed)
             _NavButton(
               item: item,

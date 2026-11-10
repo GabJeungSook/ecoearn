@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../auth/auth_service.dart';
+import '../data/point_rules.dart';
 import '../data/reports.dart';
 import '../data/student_repository.dart';
 import '../live/live_session.dart';
@@ -31,6 +32,7 @@ class DisplayKiosk extends StatefulWidget {
     required this.students,
     required this.reports,
     required this.simulator,
+    required this.rules,
     this.onExit,
   });
 
@@ -42,6 +44,9 @@ class DisplayKiosk extends StatefulWidget {
 
   /// Demo mode, toggled with Ctrl+Shift+D (for showing the screen without an ESP32).
   final Simulator simulator;
+
+  /// For showing the points rate on the waiting screen.
+  final PointRules rules;
 
   /// Called after the admin password unlocks the screen. Null (a display
   /// account) signs out instead.
@@ -154,7 +159,7 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
         color: EcoColors.background,
         padding: const EdgeInsets.all(28),
         child: ListenableBuilder(
-          listenable: Listenable.merge([widget.connection, widget.session, widget.students, widget.simulator]),
+          listenable: Listenable.merge([widget.connection, widget.session, widget.students, widget.simulator, widget.rules]),
           builder: (context, _) => Column(
             children: [
               FadeSlideIn(offset: const Offset(0, -12), child: _topBar(context)),
@@ -283,7 +288,8 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
         const SizedBox(height: 40),
         const _HeroTitle('Tap your card to start'),
         const SizedBox(height: 14),
-        const _HeroSubtitle('Then put your empty plastic bottle in the chamber.'),
+        _HeroSubtitle('Then put your empty plastic bottle in the chamber. '
+            '1 point for every ${widget.rules.gramsPerPoint} g.'),
         const SizedBox(height: 44),
         Wrap(
           spacing: 14,

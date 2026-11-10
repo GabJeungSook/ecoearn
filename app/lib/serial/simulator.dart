@@ -3,6 +3,8 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
+import '../data/app_database.dart';
+import '../data/point_rules.dart';
 import '../data/student_repository.dart';
 import 'device_event.dart';
 import 'serial_connection.dart';
@@ -14,13 +16,14 @@ class Simulator extends ChangeNotifier {
   Simulator({
     required SerialConnection connection,
     required StudentRepository students,
+    PointRules? rules,
     this.processing = const Duration(milliseconds: 8500), // crush + drain + weigh, as on the machine
     this.pauseBetween = const Duration(seconds: 7), // result stays on screen, then the next student
   })  : _connection = connection,
-        _students = students;
+        _students = students,
+        _rules = rules;
 
   // Same rules as the firmware (firmware/ecoearn/config.h).
-  static const _gramsPerPoint = 10;
   static const _maxItemGrams = 80;
 
   final Duration processing;
@@ -28,6 +31,7 @@ class Simulator extends ChangeNotifier {
 
   final SerialConnection _connection;
   final StudentRepository _students;
+  final PointRules? _rules; // the admin's points rate; firmware default without it
   final _random = Random();
 
   bool _running = false;
@@ -87,7 +91,14 @@ class Simulator extends ChangeNotifier {
       _emit(RejectEvent(uid: uid, reason: 'no_item', grams: 0, simulated: true));
     } else {
       final grams = 12 + _random.nextInt(_maxItemGrams - 20); // 12-71 g, a crushed bottle
-      _emit(WeightEvent(uid: uid, grams: grams.toDouble(), points: grams ~/ _gramsPerPoint, simulated: true));
+      final gramsPerPoint = _rules?.gramsPerPoint ?? AppDatabase.defaultGramsPerPoint;
+      _emit(WeightEvent(
+        uid: uid,
+        grams: grams.toDouble(),
+        points: grams ~/ gramsPerPoint,
+        gramsPerPoint: gramsPerPoint,
+        simulated: true,
+      ));
     }
 
     _binLevel += 3 + _random.nextInt(5);

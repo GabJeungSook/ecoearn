@@ -36,9 +36,9 @@ Research objectives the system must satisfy:
 
 ### Serial protocol (ESP32 → laptop): one JSON object per line, 115200 baud
 ```
-{"event":"boot","version":"0.1.0"}
+{"event":"boot","version":"0.3.0","grams_per_point":10}
 {"event":"card","uid":"A3F29B11"}
-{"event":"weight","uid":"A3F29B11","grams":18,"points":2}
+{"event":"weight","uid":"A3F29B11","grams":18,"points":1,"grams_per_point":10}
 {"event":"reject","uid":"A3F29B11","reason":"too_heavy","grams":120}
 {"event":"bin","level":64}
 {"event":"scan","uid":"47A87362"}
@@ -51,6 +51,8 @@ Laptop → ESP32 commands, plain text, one per line:
   Used by the Students screen's "Scan card".
 - `cancel`: leave register mode. `tare`: zero the scale.
 - `cal 74`: calibrate with a known weight (tare first); saved in flash. `weigh`: print grams.
+- `rate 10`: points rate, 1 point per 10 g; saved in flash. The app (RateSync) sends it on
+  connect, when boot reports a different rate, and when the admin changes it.
 Reject events may carry `"detail"` (`scale_not_calibrated`, `scale_not_answering`,
 `scale_unsettled`) to explain a `mechanism` reject.
 
@@ -162,6 +164,14 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
        isolate loops without returning to its event loop, so kill() never lands and it kept
        reading the freed port. Replaced by a 50 ms Timer on the main isolate that reads
        bytesAvailable (negative = port gone -> "Lost connection").
+4h. [x] Editable points rate + merging officer imports (schema v3)
+       - settings table (grams_per_point) + point_rate_changes history; admin Settings screen.
+         Each deposit stores grams_per_point and keeps its points: changes affect new deposits only.
+       - students/deposits get sync_id (32 hex, backfilled on upgrade). Officer import merges
+         the file into officer_data.ecoearn: deposits added by sync_id, students matched by
+         sync_id then student_no, details updated only from a file newer than all earlier ones,
+         nothing deleted. Files from before v3 can't be merged (asks for a new export).
+       - No SD card: admin exports .ecoearn -> flash drive -> officer imports.
 4e. [ ] Fine deductions (needs eligible fines + points-to-peso rate from the group)
 5. [ ] After soldering: wire + test MFRC522, then HX711 (calibrate with known weights)
        MFRC522 wiring (ESP32 left column, USB up): SDA→D5, SCK→D18, MOSI→D23,

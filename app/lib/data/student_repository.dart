@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'student.dart';
+import 'sync_id.dart';
 
 /// All students with their point balances, kept in memory (a school's worth
 /// of students is small) and reloaded after every change.
@@ -58,7 +59,11 @@ class StudentRepository extends ChangeNotifier {
     await _db.transaction((txn) async {
       final int id;
       if (student.id == null) {
-        id = await txn.insert('students', {...row, 'created_at': DateTime.now().toIso8601String()});
+        id = await txn.insert('students', {
+          ...row,
+          'created_at': DateTime.now().toIso8601String(),
+          'sync_id': newSyncId(),
+        });
       } else {
         id = student.id!;
         await txn.update('students', row, where: 'id = ?', whereArgs: [id]);

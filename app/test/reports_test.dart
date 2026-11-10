@@ -72,8 +72,9 @@ void main() {
 
     final csv = depositsCsv(october);
     expect(csv.first.first, 'Deposit ID');
-    expect(csv[1].sublist(1), ['2026-10-01', '00:00:00', 'A3F29B11', '2024-001', 'Juan', '12 - STEM A', '39.0', 3, 'accepted', '', 'live']);
-    expect(csv[3][9], 'rejected');
+    expect(csv[1].sublist(1),
+        ['2026-10-01', '00:00:00', 'A3F29B11', '2024-001', 'Juan', '12 - STEM A', '39.0', 3, '', 'accepted', '', 'live']);
+    expect(csv[3][10], 'rejected');
     expect(csv[4][5], 'Unregistered');
   });
 

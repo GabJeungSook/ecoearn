@@ -6,6 +6,7 @@ import '../auth/accounts_screen.dart';
 import '../auth/auth_service.dart';
 import '../data/deposit_recorder.dart';
 import '../data/officer_data.dart';
+import '../data/point_rules.dart';
 import '../data/reports.dart';
 import '../data/student_repository.dart';
 import '../live/live_screen.dart';
@@ -13,6 +14,7 @@ import '../live/live_session.dart';
 import '../reports/reports_screen.dart';
 import '../serial/serial_connection.dart';
 import '../serial/simulator.dart';
+import '../settings/settings_screen.dart';
 import '../students/students_screen.dart';
 import '../widgets/motion.dart';
 import 'app_sidebar.dart';
@@ -31,6 +33,7 @@ class AdminShell extends StatefulWidget {
     required this.recorder,
     required this.reports,
     required this.simulator,
+    required this.rules,
     required this.onOpenDisplay,
   });
 
@@ -39,6 +42,7 @@ class AdminShell extends StatefulWidget {
   final String databasePath;
   final SerialConnection connection;
   final Simulator simulator;
+  final PointRules rules;
 
   /// Switches this window to the student-facing display screen.
   final VoidCallback onOpenDisplay;
@@ -71,7 +75,7 @@ class _AdminShellState extends State<AdminShell> {
     String message;
     try {
       await OfficerDataFile.export(widget.db, path);
-      message = 'Saved $path. Copy it to the SD card or flash drive for the officers.';
+      message = 'Saved $path. Copy it to a flash drive and import it in the officer account.';
     } catch (e) {
       message = 'Could not save the data file: $e';
     }
@@ -94,6 +98,7 @@ class _AdminShellState extends State<AdminShell> {
                 SidebarItem(Icons.people_outline, 'Students'),
                 SidebarItem(Icons.bar_chart_rounded, 'Reports'),
                 SidebarItem(Icons.manage_accounts_outlined, 'Accounts'),
+                SidebarItem(Icons.tune_rounded, 'Settings'),
               ],
             ),
             Expanded(
@@ -120,6 +125,7 @@ class _AdminShellState extends State<AdminShell> {
                     onExportForOfficers: _exportForOfficers,
                   ),
                   AccountsScreen(auth: widget.auth),
+                  SettingsScreen(rules: widget.rules, auth: widget.auth, connection: widget.connection),
                 ],
               ),
             ),
