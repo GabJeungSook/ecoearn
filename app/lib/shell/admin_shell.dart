@@ -31,6 +31,7 @@ class AdminShell extends StatefulWidget {
     required this.recorder,
     required this.reports,
     required this.simulator,
+    required this.onOpenDisplay,
   });
 
   final AuthService auth;
@@ -38,6 +39,9 @@ class AdminShell extends StatefulWidget {
   final String databasePath;
   final SerialConnection connection;
   final Simulator simulator;
+
+  /// Switches this window to the student-facing display screen.
+  final VoidCallback onOpenDisplay;
   final LiveSession session;
   final StudentRepository students;
   final DepositRecorder recorder;
@@ -84,6 +88,7 @@ class _AdminShellState extends State<AdminShell> {
               auth: widget.auth,
               selectedIndex: _screen,
               onSelected: (i) => setState(() => _screen = i),
+              onOpenDisplay: widget.onOpenDisplay,
               items: const [
                 SidebarItem(Icons.sensors, 'Live'),
                 SidebarItem(Icons.people_outline, 'Students'),

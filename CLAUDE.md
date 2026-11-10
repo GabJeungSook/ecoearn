@@ -135,8 +135,10 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
        CSV is UTF-8 with BOM so Excel shows ñ correctly.
 4d. [x] Login + roles (app/lib/auth, app/lib/shell), DB schema v2 adds `accounts`
        (PBKDF2-SHA256 hashes). First run = create admin. Window opens maximized; F11.
-       - admin: Live, Students, Reports, Accounts; exports officer data file
-       - display: kiosk fullscreen Live, auto-connects to the ESP32, close/Alt+F4
+       - admin: Live, Students, Reports, Accounts; exports officer data file;
+         sidebar TV button opens the display screen, unlocking returns to admin
+       - display: kiosk fullscreen Live, auto-connects to the ESP32 (and leaves a
+         non-ESP32 port such as COM1), close/Alt+F4
          blocked, exit needs an admin password
        - officer: view only (Reports + read-only Students) of an imported .ecoearn
          file = SQLite copy with `accounts` dropped + `export_info`. Stored separately

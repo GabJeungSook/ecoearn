@@ -22,6 +22,7 @@ class AppSidebar extends StatelessWidget {
     required this.selectedIndex,
     required this.onSelected,
     this.action,
+    this.onOpenDisplay,
   });
 
   final AuthService auth;
@@ -33,6 +34,9 @@ class AppSidebar extends StatelessWidget {
 
   /// Optional button under the logo (e.g. the officer's "Import data").
   final Widget? action;
+
+  /// Shows an "Open display screen" button (admin only).
+  final VoidCallback? onOpenDisplay;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +60,12 @@ class AppSidebar extends StatelessWidget {
               onTap: onSelected == null ? null : () => onSelected!(i),
             ),
           const Spacer(),
+          if (onOpenDisplay != null)
+            _FooterButton(
+              icon: Icons.tv_rounded,
+              tooltip: 'Open the display screen (what students see). Unlock it with an admin password.',
+              onPressed: onOpenDisplay!,
+            ),
           const _FooterButton(icon: Icons.fullscreen, tooltip: 'Full screen on/off (F11)', onPressed: toggleFullScreen),
           _FooterButton(icon: Icons.power_settings_new, tooltip: 'Quit EcoEarn', onPressed: () => confirmQuit(context)),
           _FooterButton(icon: Icons.logout, tooltip: 'Sign out', onPressed: auth.logout),

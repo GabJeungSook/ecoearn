@@ -31,6 +31,7 @@ class DisplayKiosk extends StatefulWidget {
     required this.students,
     required this.reports,
     required this.simulator,
+    this.onExit,
   });
 
   final AuthService auth;
@@ -41,6 +42,10 @@ class DisplayKiosk extends StatefulWidget {
 
   /// Demo mode, toggled with Ctrl+Shift+D (for showing the screen without an ESP32).
   final Simulator simulator;
+
+  /// Called after the admin password unlocks the screen. Null (a display
+  /// account) signs out instead.
+  final VoidCallback? onExit;
 
   @override
   State<DisplayKiosk> createState() => _DisplayKioskState();
@@ -133,7 +138,7 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
       builder: (_) => _UnlockDialog(auth: widget.auth),
     );
     _unlocking = false;
-    if (unlocked == true) widget.auth.logout();
+    if (unlocked == true) (widget.onExit ?? widget.auth.logout)();
   }
 
   @override

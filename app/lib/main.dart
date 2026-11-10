@@ -79,6 +79,9 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
   late final _beeper = CardBeeper(_connection.events);
   late final _simulator = Simulator(connection: _connection, students: widget.students);
 
+  /// The admin opened the display screen from the sidebar; unlocking it returns to admin.
+  bool _adminOnDisplay = false;
+
   @override
   void initState() {
     super.initState();
@@ -112,9 +115,18 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
           duration: const Duration(milliseconds: 450),
           switchInCurve: Curves.easeOutCubic,
           child: KeyedSubtree(
-            key: ValueKey(widget.auth.current?.role),
+            key: ValueKey((widget.auth.current?.role, _adminOnDisplay)),
             child: switch (widget.auth.current?.role) {
           null => LoginScreen(auth: widget.auth),
+          Role.admin when _adminOnDisplay => DisplayKiosk(
+              auth: widget.auth,
+              connection: _connection,
+              session: _session,
+              students: widget.students,
+              reports: _reports,
+              simulator: _simulator,
+              onExit: () => setState(() => _adminOnDisplay = false),
+            ),
           Role.admin => AdminShell(
               auth: widget.auth,
               db: widget.db,
@@ -125,6 +137,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
               recorder: _recorder,
               reports: _reports,
               simulator: _simulator,
+              onOpenDisplay: () => setState(() => _adminOnDisplay = true),
             ),
           Role.display => DisplayKiosk(
               auth: widget.auth,
