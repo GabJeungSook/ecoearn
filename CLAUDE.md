@@ -171,5 +171,6 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
        and removes it afterwards (ESP32 waits up to 30 s, then re-zeroes if empty).
        2026-10-29: register-mode scan + real deposit (74 g -> 7 pts) worked on 0.2.1; then
        "machine error" from bench noise (+/-2.5 g, wires OK). 0.2.3 (more averaging)
-       compiled but NOT yet uploaded/tested. Next: upload 0.2.3, restart app, 5-10 deposits.
+       uploaded 2026-11-10; deposits worked but empty scale earned points (zero drift).
+       0.2.4: scale is zeroed at every card tap (tray is empty then). Next: test it.
 7. [ ] SD logging + RTC, LCD, then mechanism (actuator, servos, IR, lid switch)

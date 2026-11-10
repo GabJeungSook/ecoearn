@@ -215,6 +215,12 @@ void runTransaction(const String& uid) {
     return;
   }
 
+#if !FAKE_SCALE
+  // The weighing tray is empty at the card tap (the bottle is still in the
+  // crushing chamber), so zero here: earlier drift can't add phantom grams.
+  if (gramsFactor != 0 && scale.wait_ready_timeout(500)) scale.tare(10);
+#endif
+
   if (!crushAndDrain()) {
     sendReject(uid, "mechanism", 0);
     return;
