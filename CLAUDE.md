@@ -97,7 +97,11 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
 - Points rate (e.g. 1 point per 10 g)
 - Which fines are eligible and the points-to-peso rate
 - Relay module: 1- or 2-channel?
-- Linear actuator stroke (mm) and force (N)
+- Linear actuator stroke (mm) and force (N). 2026-11-10: their 2" micro actuator and the
+  "mini" listings (max 150 N) are too weak. Need 12 V, >= 750 N (1000-1500 N), with built-in
+  limit switches; suggested Lazada 1500 N 12 V 7 mm/s from Pasay (delivery Nov 11-13),
+  200 mm stroke for upright 500 mL bottles. Group is buying one; awaiting their choice.
+  Fallbacks discussed: wiper motor + crank, electric car jack, manual lever + switch.
 - How the enclosure is built and by whom
 
 ## Progress / next steps
