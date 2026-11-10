@@ -3,7 +3,7 @@
 
 #pragma once
 
-#define FIRMWARE_VERSION "0.2.4"
+#define FIRMWARE_VERSION "0.2.5"
 
 // ---- Fake vs real hardware ----
 // 1 = use a pretend value (hardware not connected yet)
@@ -21,7 +21,8 @@
 #define GRAMS_PER_POINT 10   // 1 point for every 10 g (decimals are dropped)
 
 // ---- Item checks ----
-#define MIN_ITEM_GRAMS 5     // lighter than this = nothing was deposited
+#define MIN_ITEM_GRAMS 8     // lighter than this = nothing was deposited (bench drift reached 6 g;
+                             // the lightest crushed bottle the group uses must weigh more)
 #define MAX_ITEM_GRAMS 80    // heavier than this = rejected (not a drained bottle)
 
 // ---- Storage bin ----
