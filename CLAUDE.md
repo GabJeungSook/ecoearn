@@ -179,5 +179,7 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
        0.2.4: scale is zeroed at every card tap (tray is empty then).
        0.2.5: under 8 g = no bottle. 0.2.6: zero only once the scale is steady (LED blinks,
        then solid = put item on); reader auto-restarts if its antenna turned off (cards
-       were missed until a reboot). Next: upload 0.2.6, test deposits incl. empty ones.
+       were missed until a reboot). 0.2.7: negative drift no longer = "scale failed";
+       8 samples per reading, 5 g tolerances. Bench rig was a load cell lying loose on a
+       running PC (vibration, bar tilting): needs a firm, screwed mount. Next: test 0.2.7.
 7. [ ] SD logging + RTC, LCD, then mechanism (actuator, servos, IR, lid switch)
