@@ -145,8 +145,10 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
          as officer_data.ecoearn, never mixed into the machine's DB.
        Group decision: no SD module, so officers get data via laptop export file.
        Serial + deposit recording run regardless of who is signed in.
-       Not yet tested by hand. Earlier test data ("test" student) disappeared from
-       ecoearn.db for an unknown reason; persistence verified in a test, re-check by hand.
+       Solved: the "disappeared" test data came from running the app from Claude's
+       sandbox, whose %APPDATA% is redirected to
+       AppData\Local\Packages\Claude_*\LocalCache\Roaming. Claude's tools cannot see
+       the user's real ecoearn.db.
 4f. [x] Demo mode (app/lib/serial/simulator.dart): simulated deposits without an ESP32.
        Admin Live screen "Demo" button; kiosk Ctrl+Shift+D. Events are injected into
        SerialConnection with simulated=true; DepositRecorder never saves them.
