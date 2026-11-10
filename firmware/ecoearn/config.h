@@ -3,7 +3,7 @@
 
 #pragma once
 
-#define FIRMWARE_VERSION "0.2.6"
+#define FIRMWARE_VERSION "0.2.7"
 
 // ---- Fake vs real hardware ----
 // 1 = use a pretend value (hardware not connected yet)
@@ -30,12 +30,13 @@
 
 // ---- Scale ----
 // Calibration: "cal <grams>" command (or firmware/scale_test), saved in the ESP32's flash.
-// Measured noise on the test bench: about +/-2.5 g per 0.3 s reading.
-#define SAMPLES_PER_READING 5     // HX711 conversions averaged per reading (0.5 s)
-#define STABLE_GRAMS      3.0     // readings within this range count as settled (points are per 10 g)
-#define STABLE_READINGS   4       // ...for this many readings in a row; weight = their average
-#define WEIGH_TIMEOUT_MS  10000   // give up waiting for a settled reading
-#define ZERO_SETTLE_MS    3000    // at a card tap: wait at most this long for a steady scale, then zero
+// Measured noise on the test bench (book-clamped load cell): about +/-3 g per 0.3 s
+// reading, plus a few grams of slow drift. Averaging 24 samples gives about +/-1 g.
+#define SAMPLES_PER_READING 8     // HX711 conversions averaged per reading (0.8 s)
+#define STABLE_GRAMS      5.0     // readings within this range count as settled (points are per 10 g)
+#define STABLE_READINGS   3       // ...for this many readings in a row; weight = their average
+#define WEIGH_TIMEOUT_MS  12000   // give up waiting for a settled reading
+#define ZERO_SETTLE_MS    4000    // at a card tap: wait at most this long for a steady scale, then zero
 
 // ---- Timing (milliseconds) ----
 #define DRAIN_TIME_MS      5000   // wait after crushing so liquid drains out

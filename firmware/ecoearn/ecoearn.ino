@@ -29,7 +29,8 @@ HX711 scale;
 float gramsFactor = 0;   // raw counts per gram (saved by "cal" or scale_test); 0 = not calibrated
 #endif
 
-const char* scaleProblem = nullptr;   // why readWeightGrams() last returned -1
+const int WEIGH_FAILED = -1000;        // readWeightGrams() result when the scale can't weigh
+const char* scaleProblem = nullptr;   // ...and why
 
 // Pretend student cards, used while FAKE_RFID is 1.
 const char* FAKE_UIDS[] = { "A3F29B11", "5C7E0D42", "91B4E6F3" };
@@ -127,7 +128,7 @@ void rezeroIfEmpty() {
 
 // Zeroes the scale once it is steady: right after a card tap the table can
 // still be shaking from the student's hand. Waits for 3 readings in a row
-// within 1 g (at most ZERO_SETTLE_MS), then zeroes. The status LED blinks
+// within STABLE_GRAMS (at most ZERO_SETTLE_MS), then zeroes. The status LED blinks
 // meanwhile and turns solid when the item may go on.
 void zeroWhenSteady() {
   if (gramsFactor == 0) return;
@@ -135,9 +136,10 @@ void zeroWhenSteady() {
   unsigned long start = millis();
   while (millis() - start < ZERO_SETTLE_MS) {
     digitalWrite(STATUS_LED_PIN, !digitalRead(STATUS_LED_PIN));
-    float grams = readGramsOnce();
+    float grams = readGramsOnce(SAMPLES_PER_READING);
     if (isnan(grams)) continue;
-    if (fabs(grams - previous) <= 1.0 && fabs(grams - beforeThat) <= 1.0) break;
+    if (fabs(grams - previous) <= STABLE_GRAMS && fabs(grams - beforeThat) <= STABLE_GRAMS &&
+        fabs(previous - beforeThat) <= STABLE_GRAMS) break;
     beforeThat = previous;
     previous = grams;
   }
@@ -147,7 +149,7 @@ void zeroWhenSteady() {
 #endif
 
 // Mechanism step 6: stable weight of the crushed bottle, in grams.
-// Returns -1 if the scale can't give a settled reading (not calibrated,
+// Returns WEIGH_FAILED if the scale can't give a settled reading (not calibrated,
 // not answering, or the tray keeps moving).
 int readWeightGrams() {
 #if FAKE_SCALE
@@ -156,7 +158,7 @@ int readWeightGrams() {
 #else
   if (gramsFactor == 0) {
     scaleProblem = "scale_not_calibrated";
-    return -1;
+    return WEIGH_FAILED;
   }
   // Wait until STABLE_READINGS readings in a row stay within STABLE_GRAMS;
   // the weight is their average. A reading the HX711 misses (e.g. a wire
@@ -179,10 +181,11 @@ int readWeightGrams() {
       high = max(high, g);
       sum += g;
     }
-    if (high - low <= STABLE_GRAMS) return lround(sum / STABLE_READINGS);
+    // Slight drift below zero on an empty tray is still "nothing", not a failure.
+    if (high - low <= STABLE_GRAMS) return max(0L, lround(sum / STABLE_READINGS));
   }
   scaleProblem = answered ? "scale_unsettled" : "scale_not_answering";
-  return -1;
+  return WEIGH_FAILED;
 #endif
 }
 
@@ -247,7 +250,7 @@ void runTransaction(const String& uid) {
   }
 
   int grams = readWeightGrams();
-  if (grams < 0) {
+  if (grams == WEIGH_FAILED) {
     sendReject(uid, "mechanism", 0, scaleProblem);
   } else if (grams < MIN_ITEM_GRAMS) {
     sendReject(uid, "no_item", grams);
