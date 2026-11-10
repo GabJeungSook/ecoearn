@@ -24,15 +24,27 @@ class PortInfo {
 class SerialConnection extends ChangeNotifier {
   static const baudRate = 115200;
 
+  // The background reader wakes at least this often, so it has let go of a
+  // port this long after being stopped.
+  static const _readerTimeout = Duration(milliseconds: 200);
+  static const _readerStopped = Duration(milliseconds: 600);
+
   final _events = StreamController<DeviceEvent>.broadcast();
+  final _notes = StreamController<String>.broadcast();
   SerialPort? _port;
   SerialPortReader? _reader;
   StreamSubscription<String>? _lines;
 
   String? _portName;
   String? _error;
+  Future<void> _closing = Future.value();
+  bool _connecting = false;
 
   Stream<DeviceEvent> get events => _events.stream;
+
+  /// The firmware's lines for people (those starting with "# "), without the
+  /// "# ", e.g. "Weight: 72.0 g" or "Scale zeroed.". Used by the scale calibration.
+  Stream<String> get notes => _notes.stream;
   bool get isConnected => _port != null;
   String? get portName => _portName;
 
@@ -52,10 +64,21 @@ class SerialConnection extends ChangeNotifier {
     }
   }
 
-  void connect(String name) {
-    _close();
-    _error = null;
+  /// Opens [name]. Waits for a port being closed to be fully released first.
+  Future<void> connect(String name) async {
+    if (_connecting) return;
+    _connecting = true;
+    try {
+      _close();
+      _error = null;
+      await _closing;
+      _open(name);
+    } finally {
+      _connecting = false;
+    }
+  }
 
+  void _open(String name) {
     final port = SerialPort(name);
     if (!port.openReadWrite()) {
       final reason = SerialPort.lastError?.message ?? 'unknown error';
@@ -79,7 +102,7 @@ class SerialConnection extends ChangeNotifier {
 
     _port = port;
     _portName = name;
-    _reader = SerialPortReader(port);
+    _reader = SerialPortReader(port, timeout: _readerTimeout.inMilliseconds);
     _lines = _reader!.stream
         .cast<List<int>>()
         .transform(const Utf8Decoder(allowMalformed: true))
@@ -115,6 +138,10 @@ class SerialConnection extends ChangeNotifier {
   void inject(DeviceEvent event) => _events.add(event);
 
   void _onLine(String line) {
+    if (line.startsWith('# ')) {
+      _notes.add(line.substring(2).trim());
+      return;
+    }
     final event = DeviceEvent.tryParse(line);
     if (event != null) _events.add(event);
   }
@@ -125,20 +152,30 @@ class SerialConnection extends ChangeNotifier {
     notifyListeners();
   }
 
+  // The reader runs in a background isolate that may be inside a native read
+  // when it is stopped. Freeing the port at once made it use freed memory (a
+  // "Debug Assertion Failed" heap crash on Disconnect), so the port is closed
+  // only after the reader has certainly stopped.
   void _close() {
     unawaited(_lines?.cancel());
     _lines = null;
     _reader?.close();
     _reader = null;
-    _port?.close();
-    _port?.dispose();
+    final port = _port;
     _port = null;
+    if (port != null) {
+      _closing = Future.delayed(_readerStopped, () {
+        port.close();
+        port.dispose();
+      });
+    }
   }
 
   @override
   void dispose() {
     _close();
     _events.close();
+    _notes.close();
     super.dispose();
   }
 }

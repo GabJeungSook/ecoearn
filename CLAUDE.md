@@ -154,6 +154,10 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
        SerialConnection with simulated=true; DepositRecorder never saves them.
        Same timings as the firmware (8.5 s processing). Design: Plus Jakarta Sans font
        (bundled, OFL), shared motion helpers in app/lib/widgets/motion.dart.
+4g. [x] Scale calibration in the app: Live screen scale button -> ScaleDialog (tare, cal N,
+       live weigh polling). Firmware "# " lines reach the app via SerialConnection.notes.
+       Disconnect crash fixed: the libserialport reader isolate could still be in a native
+       read, so the port is now closed/freed 600 ms after the reader stops (connect waits).
 4e. [ ] Fine deductions (needs eligible fines + points-to-peso rate from the group)
 5. [ ] After soldering: wire + test MFRC522, then HX711 (calibrate with known weights)
        MFRC522 wiring (ESP32 left column, USB up): SDA→D5, SCK→D18, MOSI→D23,

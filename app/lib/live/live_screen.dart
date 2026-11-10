@@ -9,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../widgets/page_parts.dart';
 import '../widgets/stat_card.dart';
 import 'live_session.dart';
+import 'scale_dialog.dart';
 
 const _rejectLabels = {
   'bin_full': 'bin is full',
@@ -181,6 +182,13 @@ class _LiveScreenState extends State<LiveScreen> {
                 onPressed: _selectedPort == null ? null : () => connection.connect(_selectedPort!),
                 child: const Text('Connect'),
               ),
+      ),
+      SquareIconButton(
+        icon: Icons.scale_outlined,
+        tooltip: connected ? 'Calibrate the scale' : 'Connect to the machine to calibrate the scale',
+        onPressed: connected && !widget.simulator.running
+            ? () => showDialog<void>(context: context, builder: (_) => ScaleDialog(connection: connection))
+            : null,
       ),
       _DemoButton(simulator: widget.simulator),
       SquareIconButton(icon: Icons.clear_all, tooltip: 'Clear the log', onPressed: widget.session.clear),
