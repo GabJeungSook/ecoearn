@@ -156,7 +156,9 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
        (bundled, OFL), shared motion helpers in app/lib/widgets/motion.dart.
 4g. [x] Scale calibration in the app: Live screen scale button -> ScaleDialog (tare, cal N,
        live weigh polling). Firmware "# " lines reach the app via SerialConnection.notes.
-       Disconnect crash ("Debug Assertion Failed", heap): libserialport's SerialPortReader
+       Disconnect crash ("Debug Assertion Failed", heap) = double free: `port.config = c`
+       makes the port own c (freed in port.dispose()), and we also called c.dispose().
+       Also: libserialport's SerialPortReader
        isolate loops without returning to its event loop, so kill() never lands and it kept
        reading the freed port. Replaced by a 50 ms Timer on the main isolate that reads
        bytesAvailable (negative = port gone -> "Lost connection").

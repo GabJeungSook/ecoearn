@@ -85,8 +85,10 @@ class SerialConnection extends ChangeNotifier {
       // Leave the ESP32's EN/BOOT lines alone so opening the port doesn't reset it.
       ..dtr = SerialPortDtr.off
       ..rts = SerialPortRts.off;
+    // The port now owns the config and frees it in port.dispose(). Freeing it
+    // here as well was a double free: the "Debug Assertion Failed" heap crash
+    // on Disconnect.
     port.config = config;
-    config.dispose();
 
     _port = port;
     _portName = name;
