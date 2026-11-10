@@ -211,3 +211,9 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
        3x coins -> 71/72/71 g -> 7 pts. 0.2.8: LED blinks while waiting for the item to be
        taken off (fake mechanism). Reader self-restart fired after long waits (harmless).
 7. [ ] SD logging + RTC, LCD, then mechanism (actuator, servos, IR, lid switch)
+8. [ ] Deployment without a laptop (group decision 2026-11-10): Raspberry Pi 5 (4 GB) at the
+       machine, running the EcoEarn Flutter app (Linux build) in display mode on an HDMI
+       monitor; ESP32 connects to the Pi by USB. Pi stores the data (so no SD module needed on
+       the ESP32) and its built-in RTC keeps time (needs the RTC battery). To do: port detection
+       on Linux (match CH340 by USB vendor id 0x1A86, not the Windows description), audio on
+       Linux (GStreamer), auto-start display mode at boot, build Flutter on the Pi.
