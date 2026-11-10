@@ -3,7 +3,7 @@
 
 #pragma once
 
-#define FIRMWARE_VERSION "0.2.5"
+#define FIRMWARE_VERSION "0.2.6"
 
 // ---- Fake vs real hardware ----
 // 1 = use a pretend value (hardware not connected yet)
@@ -35,12 +35,14 @@
 #define STABLE_GRAMS      3.0     // readings within this range count as settled (points are per 10 g)
 #define STABLE_READINGS   4       // ...for this many readings in a row; weight = their average
 #define WEIGH_TIMEOUT_MS  10000   // give up waiting for a settled reading
+#define ZERO_SETTLE_MS    3000    // at a card tap: wait at most this long for a steady scale, then zero
 
 // ---- Timing (milliseconds) ----
 #define DRAIN_TIME_MS      5000   // wait after crushing so liquid drains out
 #define FAKE_TAP_EVERY_MS 10000   // how often a pretend student taps a card
 #define REGISTER_MODE_MS  30000   // register mode ends if no card is tapped
 #define REMOVE_ITEM_MS    30000   // fake mechanism: time to take the item off the scale
+#define RFID_CHECK_MS     3000    // how often an idle machine checks the card reader is still working
 
 // ---- Pins ----
 #define STATUS_LED_PIN 2     // built-in blue LED: on while a bottle is processed

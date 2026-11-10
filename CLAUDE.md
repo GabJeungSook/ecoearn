@@ -176,5 +176,8 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
        2026-10-29: register-mode scan + real deposit (74 g -> 7 pts) worked on 0.2.1; then
        "machine error" from bench noise (+/-2.5 g, wires OK). 0.2.3 (more averaging)
        uploaded 2026-11-10; deposits worked but empty scale earned points (zero drift).
-       0.2.4: scale is zeroed at every card tap (tray is empty then). Next: test it.
+       0.2.4: scale is zeroed at every card tap (tray is empty then).
+       0.2.5: under 8 g = no bottle. 0.2.6: zero only once the scale is steady (LED blinks,
+       then solid = put item on); reader auto-restarts if its antenna turned off (cards
+       were missed until a reboot). Next: upload 0.2.6, test deposits incl. empty ones.
 7. [ ] SD logging + RTC, LCD, then mechanism (actuator, servos, IR, lid switch)

@@ -124,6 +124,26 @@ void rezeroIfEmpty() {
   float grams = readGramsOnce();
   if (!isnan(grams) && fabs(grams) < MIN_ITEM_GRAMS) scale.tare(10);
 }
+
+// Zeroes the scale once it is steady: right after a card tap the table can
+// still be shaking from the student's hand. Waits for 3 readings in a row
+// within 1 g (at most ZERO_SETTLE_MS), then zeroes. The status LED blinks
+// meanwhile and turns solid when the item may go on.
+void zeroWhenSteady() {
+  if (gramsFactor == 0) return;
+  float previous = NAN, beforeThat = NAN;
+  unsigned long start = millis();
+  while (millis() - start < ZERO_SETTLE_MS) {
+    digitalWrite(STATUS_LED_PIN, !digitalRead(STATUS_LED_PIN));
+    float grams = readGramsOnce();
+    if (isnan(grams)) continue;
+    if (fabs(grams - previous) <= 1.0 && fabs(grams - beforeThat) <= 1.0) break;
+    beforeThat = previous;
+    previous = grams;
+  }
+  scale.tare(10);
+  digitalWrite(STATUS_LED_PIN, HIGH);
+}
 #endif
 
 // Mechanism step 6: stable weight of the crushed bottle, in grams.
@@ -218,7 +238,7 @@ void runTransaction(const String& uid) {
 #if !FAKE_SCALE
   // The weighing tray is empty at the card tap (the bottle is still in the
   // crushing chamber), so zero here: earlier drift can't add phantom grams.
-  if (gramsFactor != 0 && scale.wait_ready_timeout(500)) scale.tare(10);
+  zeroWhenSteady();
 #endif
 
   if (!crushAndDrain()) {
@@ -323,6 +343,23 @@ void setup() {
 void loop() {
   if (Serial.available()) handleCommand(Serial.readStringUntil('\n'));
   if (registerMode && millis() - registerStarted > REGISTER_MODE_MS) registerMode = false;
+
+#if !FAKE_RFID
+  // The reader can reset itself after a power dip (e.g. a loose 3.3 V or RST
+  // wire): it still answers but its antenna is off, so cards go unnoticed.
+  // Check now and then and restart it. (Not on a timer regardless: restarting
+  // the antenna would re-read a card left lying on the reader.)
+  static unsigned long lastReaderCheck = 0;
+  if (millis() - lastReaderCheck > RFID_CHECK_MS) {
+    lastReaderCheck = millis();
+    byte version = rfid.PCD_ReadRegister(MFRC522::VersionReg);
+    bool antennaOn = (rfid.PCD_ReadRegister(MFRC522::TxControlReg) & 0x03) == 0x03;
+    if (version == 0x00 || version == 0xFF || !antennaOn) {
+      rfid.PCD_Init();
+      Serial.println("# RFID reader had stopped; restarted it.");
+    }
+  }
+#endif
 
   String uid = readCard();
   if (uid == "") return;
