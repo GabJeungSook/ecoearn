@@ -31,6 +31,12 @@ sealed class DeviceEvent {
         ),
       {'event': 'card', 'uid': String uid} =>
         CardEvent(uid: uid, receivedAt: receivedAt),
+      {'event': 'stage', 'uid': String uid, 'stage': String stage} => StageEvent(
+          uid: uid,
+          stage: stage,
+          expectedMs: decoded['ms'] is int ? decoded['ms'] as int : null,
+          receivedAt: receivedAt,
+        ),
       {'event': 'scan', 'uid': String uid} =>
         ScanEvent(uid: uid, receivedAt: receivedAt),
       {'event': 'weight', 'uid': String uid, 'grams': num grams, 'points': int points} =>
@@ -72,6 +78,18 @@ class BootEvent extends DeviceEvent {
 class CardEvent extends DeviceEvent {
   CardEvent({required this.uid, super.receivedAt, super.simulated});
   final String uid;
+}
+
+/// The machine started a step of a deposit (firmware 0.3.1+), so screens can
+/// show what it is really doing. [stage]: `ready` (zeroing the scale),
+/// `crushing`, `draining`, `dropping` (trapdoor), `weighing`, `tipping`.
+/// [expectedMs] is a typical duration for progress bars; the step lasts until
+/// the next stage or the result.
+class StageEvent extends DeviceEvent {
+  StageEvent({required this.uid, required this.stage, this.expectedMs, super.receivedAt, super.simulated});
+  final String uid;
+  final String stage;
+  final int? expectedMs;
 }
 
 /// A card was read in register mode (after the laptop sent `register`):

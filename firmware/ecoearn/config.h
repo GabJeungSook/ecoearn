@@ -3,7 +3,7 @@
 
 #pragma once
 
-#define FIRMWARE_VERSION "0.3.0"
+#define FIRMWARE_VERSION "0.3.1"
 
 // ---- Fake vs real hardware ----
 // 1 = use a pretend value (hardware not connected yet)
@@ -40,6 +40,12 @@
 
 // ---- Timing (milliseconds) ----
 #define DRAIN_TIME_MS      5000   // wait after crushing so liquid drains out
+// Typical step durations, sent with each "stage" event for the screens' progress bars.
+// Set CRUSH_EXPECTED_MS to the real actuator's time out and back once it's fitted
+// (e.g. 200 mm at 7 mm/s = about 29 s each way -> 58000).
+#define CRUSH_EXPECTED_MS  1500   // fake mechanism: pretend crush time
+#define DROP_EXPECTED_MS    500   // trapdoor open and close
+#define WEIGH_EXPECTED_MS  3000   // usual time to a settled weight
 #define FAKE_TAP_EVERY_MS 10000   // how often a pretend student taps a card
 #define REGISTER_MODE_MS  30000   // register mode ends if no card is tapped
 #define REMOVE_ITEM_MS    30000   // fake mechanism: time to take the item off the scale

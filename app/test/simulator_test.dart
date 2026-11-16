@@ -29,6 +29,8 @@ void main() {
 
     expect(received.first, isA<BootEvent>());
     expect(received.whereType<CardEvent>(), hasLength(1));
+    expect(received.whereType<StageEvent>().map((e) => e.stage),
+        ['ready', 'crushing', 'draining', 'dropping', 'weighing', 'tipping']);
     expect(received.where((e) => e is WeightEvent || e is RejectEvent), hasLength(1));
     expect(received.last, isA<BinEvent>());
     expect(received.every((e) => e.simulated), isTrue);

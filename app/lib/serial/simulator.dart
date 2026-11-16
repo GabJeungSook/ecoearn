@@ -80,8 +80,19 @@ class Simulator extends ChangeNotifier {
 
     _emit(CardEvent(uid: uid, simulated: true));
     _midDeposit = true;
-    await Future.delayed(processing);
-    if (run != _run) return;
+    // The machine's steps, each with its share of the processing time (as the firmware announces them).
+    for (final (stage, share) in const [
+      ('ready', 0.15),
+      ('crushing', 0.2),
+      ('draining', 0.45),
+      ('dropping', 0.05),
+      ('weighing', 0.15),
+    ]) {
+      final duration = processing * share;
+      _emit(StageEvent(uid: uid, stage: stage, expectedMs: duration.inMilliseconds, simulated: true));
+      await Future.delayed(duration);
+      if (run != _run) return;
+    }
     _midDeposit = false;
 
     final roll = _random.nextInt(10);
@@ -101,6 +112,7 @@ class Simulator extends ChangeNotifier {
       ));
     }
 
+    _emit(StageEvent(uid: uid, stage: 'tipping', expectedMs: 0, simulated: true));
     _binLevel += 3 + _random.nextInt(5);
     if (_binLevel >= 95) _binLevel = 8; // pretend staff emptied it
     _emit(BinEvent(level: _binLevel, simulated: true));

@@ -11,6 +11,7 @@ import '../widgets/page_parts.dart';
 import '../widgets/stat_card.dart';
 import 'live_session.dart';
 import 'scale_dialog.dart';
+import 'stages.dart';
 
 const _rejectLabels = {
   'bin_full': 'bin is full',
@@ -38,6 +39,7 @@ String describeEvent(DeviceEvent event, [String Function(String uid) who = _plai
       BootEvent(:final version) => 'ESP32 started (firmware $version)',
       CardEvent(:final uid) => 'Card tapped: ${who(uid)}',
       ScanEvent(:final uid) => 'Card read for registration: ${who(uid)}',
+      StageEvent(:final uid, :final stage) => 'Machine step: $stage (${who(uid)})',
       WeightEvent(:final uid, :final grams, :final points) =>
         'Deposit: ${who(uid)}, ${_grams(grams)} → $points ${points == 1 ? 'point' : 'points'}',
       RejectEvent(:final uid, :final reason, :final grams, :final detail) =>
@@ -52,6 +54,7 @@ IconData _icon(DeviceEvent event) => switch (event) {
       BootEvent() => Icons.power_settings_new,
       CardEvent() => Icons.contactless,
       ScanEvent() => Icons.badge_outlined,
+      StageEvent() => Icons.settings_outlined,
       WeightEvent() => Icons.scale,
       RejectEvent() => Icons.block,
       BinEvent() => Icons.delete_outline,
@@ -60,7 +63,7 @@ IconData _icon(DeviceEvent event) => switch (event) {
 
 Color _eventColor(DeviceEvent event) => switch (event) {
       BootEvent() => EcoColors.muted,
-      CardEvent() || ScanEvent() => EcoColors.sky,
+      CardEvent() || ScanEvent() || StageEvent() => EcoColors.sky,
       WeightEvent() => EcoColors.emerald,
       RejectEvent() => EcoColors.coral,
       BinEvent() => EcoColors.amber,
@@ -231,7 +234,9 @@ class _LiveScreenState extends State<LiveScreen> {
           value: processingUid == null
               ? '—'
               : widget.students.byUid(processingUid)?.name ?? 'Unregistered card',
-          detail: processingUid == null ? 'Waiting for a card tap' : '$processingUid · Processing bottle…',
+          detail: processingUid == null
+              ? 'Waiting for a card tap'
+              : '$processingUid · ${MachineStage.of(session.stage)?.message ?? 'Processing bottle'}…',
           valueColor: processingUid != null && widget.students.byUid(processingUid) == null ? EcoColors.amber : null,
           highlight: true,
           loading: processingUid != null,

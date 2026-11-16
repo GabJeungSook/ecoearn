@@ -10,6 +10,7 @@ import '../data/point_rules.dart';
 import '../data/reports.dart';
 import '../data/student_repository.dart';
 import '../live/live_session.dart';
+import '../live/stages.dart';
 import '../serial/device_event.dart';
 import '../serial/serial_connection.dart';
 import '../serial/simulator.dart';
@@ -339,7 +340,7 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
       const SizedBox(height: 12),
       const _HeroSubtitle('Hold on while we process your bottle.'),
       const SizedBox(height: 40),
-      _ProcessingTracker(since: _processingSince),
+      _ProcessingTracker(since: _processingSince, stage: widget.session.stage),
     ]);
   }
 
@@ -619,25 +620,35 @@ class _BigBadge extends StatelessWidget {
       );
 }
 
-/// Live loaders while a bottle is processed: the three stages, an overall
-/// progress bar and a running timer. The machine reports nothing between the
-/// tap and the result, so they follow the firmware's timings (crush ~1.5 s,
-/// drain 5 s, then weigh) and the bar slows near the end until the result comes.
+/// Live loaders while a bottle is processed: the three main steps, an overall
+/// progress bar and a running timer. They follow the steps the machine
+/// announces (stage events), so they stay right with the real actuator too.
 class _ProcessingTracker extends StatefulWidget {
-  const _ProcessingTracker({required this.since});
+  const _ProcessingTracker({required this.since, required this.stage});
 
   final DateTime since;
+
+  /// The machine's current step; null until the first one arrives.
+  final StageEvent? stage;
 
   @override
   State<_ProcessingTracker> createState() => _ProcessingTrackerState();
 }
 
 class _ProcessingTrackerState extends State<_ProcessingTracker> with SingleTickerProviderStateMixin {
-  static const _stages = [
-    (Icons.compress, 'Crushing', 'Crushing your bottle'),
-    (Icons.water_drop_outlined, 'Draining', 'Draining leftover liquid'),
-    (Icons.scale_outlined, 'Weighing', 'Weighing your bottle'),
+  static const _steps = [
+    (Icons.compress, 'Crushing'),
+    (Icons.water_drop_outlined, 'Draining'),
+    (Icons.scale_outlined, 'Weighing'),
   ];
+
+  /// Which of the three icons is active: getting ready = none yet, dropping counts as weighing.
+  static int _step(MachineStage? stage) => switch (stage) {
+        null || MachineStage.ready => -1,
+        MachineStage.crushing => 0,
+        MachineStage.draining => 1,
+        MachineStage.dropping || MachineStage.weighing => 2,
+      };
 
   // Only used to repaint every frame; the values come from the clock.
   late final _ticker = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat();
@@ -652,16 +663,17 @@ class _ProcessingTrackerState extends State<_ProcessingTracker> with SingleTicke
   Widget build(BuildContext context) => AnimatedBuilder(
         animation: _ticker,
         builder: (context, _) {
-          final elapsed = DateTime.now().difference(widget.since).inMilliseconds / 1000;
-          final stage = elapsed < 1.5 ? 0 : (elapsed < 6.5 ? 1 : 2);
-          // Linear up to 90% over the expected ~9 s, then creeps toward 98%.
-          final progress = elapsed < 9 ? elapsed / 10 : 0.98 - 0.08 * math.exp(-(elapsed - 9) / 4);
+          final now = DateTime.now();
+          final elapsed = now.difference(widget.since).inMilliseconds / 1000;
+          final stage = MachineStage.of(widget.stage);
+          final step = _step(stage);
+          final progress = depositProgress(widget.stage, now);
 
           return Column(mainAxisSize: MainAxisSize.min, children: [
             Row(mainAxisSize: MainAxisSize.min, children: [
-              for (final (i, (icon, label, _)) in _stages.indexed) ...[
-                if (i > 0) _StageLine(done: stage >= i),
-                _Stage(icon: icon, label: label, state: stage > i ? 1 : (stage == i ? 0 : -1)),
+              for (final (i, (icon, label)) in _steps.indexed) ...[
+                if (i > 0) _StageLine(done: step >= i),
+                _Stage(icon: icon, label: label, state: step > i ? 1 : (step == i ? 0 : -1)),
               ],
             ]),
             const SizedBox(height: 32),
@@ -670,7 +682,7 @@ class _ProcessingTrackerState extends State<_ProcessingTracker> with SingleTicke
               child: Column(children: [
                 Row(children: [
                   Text(
-                    '${_stages[stage].$3}…',
+                    '${stage?.message ?? MachineStage.ready.message}…',
                     style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                   const Spacer(),

@@ -26,6 +26,10 @@ class LiveSession extends ChangeNotifier {
   /// Card that was tapped and whose bottle is still being processed.
   String? processingUid;
 
+  /// What the machine is doing for [processingUid], from its stage events
+  /// (null until the first one, or with older firmware).
+  StageEvent? stage;
+
   /// The last [WeightEvent] or [RejectEvent].
   DeviceEvent? lastResult;
 
@@ -35,23 +39,33 @@ class LiveSession extends ChangeNotifier {
   int rejects = 0;
 
   void _onEvent(DeviceEvent event) {
-    log.insert(0, event);
-    if (log.length > maxLogEntries) log.removeLast();
+    // Steps are shown on the processing screens, not listed in the log.
+    if (event is! StageEvent) {
+      log.insert(0, event);
+      if (log.length > maxLogEntries) log.removeLast();
+    }
 
     switch (event) {
       case BootEvent(:final version):
         firmwareVersion = version;
         processingUid = null;
+        stage = null;
       case CardEvent(:final uid):
         processingUid = uid;
+        stage = null;
+      case StageEvent(:final uid):
+        // "tipping" comes after the result; only steps of the deposit in progress count.
+        if (uid == processingUid) stage = event;
       case WeightEvent(points: final earned):
         lastResult = event;
         processingUid = null;
+        stage = null;
         bottles++;
         points += earned;
       case RejectEvent():
         lastResult = event;
         processingUid = null;
+        stage = null;
         rejects++;
       case BinEvent(:final level):
         binLevel = level;

@@ -58,6 +58,15 @@ void sendCard(const String& uid) {
   Serial.printf("{\"event\":\"card\",\"uid\":\"%s\"}\n", uid.c_str());
 }
 
+// The machine has started a step of the deposit, so screens can show what it's
+// really doing. stage: "ready" (zeroing the scale), "crushing", "draining",
+// "dropping" (trapdoor), "weighing", "tipping" (into the bin). expectedMs is a
+// typical duration for progress bars (0 = unknown); the step ends when the next
+// stage or the result arrives.
+void sendStage(const String& uid, const char* stage, unsigned long expectedMs) {
+  Serial.printf("{\"event\":\"stage\",\"uid\":\"%s\",\"stage\":\"%s\",\"ms\":%lu}\n", uid.c_str(), stage, expectedMs);
+}
+
 void sendScan(const String& uid) {
   Serial.printf("{\"event\":\"scan\",\"uid\":\"%s\"}\n", uid.c_str());
 }
@@ -103,17 +112,34 @@ String readCard() {
 
 // Mechanism steps 2-5: bottle detected, lid closed, crush, drain, trapdoor opens.
 // Returns false if something went wrong (lid opened, motion timed out).
-bool crushAndDrain() {
+// Each step is its own function, fake or real, so runTransaction() can announce
+// the steps the same way whichever hardware is fitted.
+
+// Step 3: the actuator extends (spikes pierce, plate crushes) and retracts.
+bool crush() {
 #if FAKE_MECHANISM
 #if !FAKE_SCALE
   Serial.println("# Put the item on the scale now.");
 #endif
-  delay(1500);            // pretend: actuator extends and retracts
-  delay(DRAIN_TIME_MS);   // liquid drains (same wait the real machine uses)
-  delay(500);             // pretend: trapdoor drops bottle onto the scale
+  delay(CRUSH_EXPECTED_MS);   // pretend: actuator extends and retracts
   return true;
 #else
-  #error "Real mechanism is not written yet. Set FAKE_MECHANISM to 1 in config.h."
+  #error "Real actuator is not written yet. Set FAKE_MECHANISM to 1 in config.h."
+#endif
+}
+
+// Step 4: leftover liquid drains out of the chamber (same wait with or without hardware).
+void drain() {
+  delay(DRAIN_TIME_MS);
+}
+
+// Step 5: the trapdoor servo opens, the bottle falls onto the scale, the door closes.
+bool dropToScale() {
+#if FAKE_MECHANISM
+  delay(DROP_EXPECTED_MS);    // pretend: trapdoor opens and closes
+  return true;
+#else
+  #error "Real trapdoor is not written yet. Set FAKE_MECHANISM to 1 in config.h."
 #endif
 }
 
@@ -245,17 +271,27 @@ void runTransaction(const String& uid) {
     return;
   }
 
+  sendStage(uid, "ready", ZERO_SETTLE_MS);
 #if !FAKE_SCALE
   // The weighing tray is empty at the card tap (the bottle is still in the
   // crushing chamber), so zero here: earlier drift can't add phantom grams.
   zeroWhenSteady();
 #endif
 
-  if (!crushAndDrain()) {
+  sendStage(uid, "crushing", CRUSH_EXPECTED_MS);
+  if (!crush()) {
+    sendReject(uid, "mechanism", 0);
+    return;
+  }
+  sendStage(uid, "draining", DRAIN_TIME_MS);
+  drain();
+  sendStage(uid, "dropping", DROP_EXPECTED_MS);
+  if (!dropToScale()) {
     sendReject(uid, "mechanism", 0);
     return;
   }
 
+  sendStage(uid, "weighing", WEIGH_EXPECTED_MS);
   int grams = readWeightGrams();
   if (grams == WEIGH_FAILED) {
     sendReject(uid, "mechanism", 0, scaleProblem);
@@ -267,6 +303,7 @@ void runTransaction(const String& uid) {
     sendWeight(uid, grams, pointsForGrams(grams));
   }
 
+  sendStage(uid, "tipping", 0);
   tipIntoBin();
   sendBin(readBinLevel());
 }

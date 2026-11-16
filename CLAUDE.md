@@ -42,8 +42,14 @@ Research objectives the system must satisfy:
 {"event":"reject","uid":"A3F29B11","reason":"too_heavy","grams":120}
 {"event":"bin","level":64}
 {"event":"scan","uid":"47A87362"}
+{"event":"stage","uid":"A3F29B11","stage":"crushing","ms":1500}
 ```
 Reject reasons: `bin_full`, `mechanism`, `no_item`, `too_heavy` (no points awarded).
+Stage events (firmware 0.3.1+) announce each step of a deposit as it starts: `ready` (zeroing),
+`crushing`, `draining`, `dropping` (trapdoor), `weighing`, then after the result `tipping`.
+`ms` = typical duration for progress bars (config.h CRUSH_EXPECTED_MS etc.; set
+CRUSH_EXPECTED_MS to the real actuator's out-and-back time when it's fitted). The kiosk and
+Live screen show the real step (app/lib/live/stages.dart); demo mode sends the same steps.
 The laptop must ignore any line that isn't valid JSON (the ESP32 prints its own
 startup text after every reset). Firmware hint lines for people start with "# ".
 Laptop → ESP32 commands, plain text, one per line:
