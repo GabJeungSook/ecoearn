@@ -13,6 +13,7 @@ import 'data/point_rules.dart';
 import 'data/reports.dart';
 import 'data/student_repository.dart';
 import 'live/live_session.dart';
+import 'serial/auto_connect.dart';
 import 'serial/rate_sync.dart';
 import 'serial/serial_connection.dart';
 import 'serial/simulator.dart';
@@ -87,6 +88,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
   late final _beeper = CardBeeper(_connection.events);
   late final _simulator = Simulator(connection: _connection, students: widget.students, rules: widget.rules);
   late final _rateSync = RateSync(connection: _connection, rules: widget.rules);
+  late final _autoConnect = AutoConnect(connection: _connection, auth: widget.auth);
 
   /// The admin opened the display screen from the sidebar; unlocking it returns to admin.
   bool _adminOnDisplay = false;
@@ -96,10 +98,12 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
     super.initState();
     _beeper; // start listening for card taps right away
     _rateSync; // and keep the machine's points rate in step
+    _autoConnect; // and connect to the machine whenever someone is signed in
   }
 
   @override
   void dispose() {
+    _autoConnect.dispose();
     _rateSync.dispose();
     _simulator.dispose();
     _beeper.dispose();
@@ -151,6 +155,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
               reports: _reports,
               simulator: _simulator,
               rules: widget.rules,
+              autoConnect: _autoConnect,
               onOpenDisplay: () => setState(() => _adminOnDisplay = true),
             ),
           Role.display => DisplayKiosk(

@@ -12,6 +12,7 @@ import '../data/student_repository.dart';
 import '../live/live_screen.dart';
 import '../live/live_session.dart';
 import '../reports/reports_screen.dart';
+import '../serial/auto_connect.dart';
 import '../serial/serial_connection.dart';
 import '../serial/simulator.dart';
 import '../settings/settings_screen.dart';
@@ -34,6 +35,7 @@ class AdminShell extends StatefulWidget {
     required this.reports,
     required this.simulator,
     required this.rules,
+    required this.autoConnect,
     required this.onOpenDisplay,
   });
 
@@ -43,6 +45,7 @@ class AdminShell extends StatefulWidget {
   final SerialConnection connection;
   final Simulator simulator;
   final PointRules rules;
+  final AutoConnect autoConnect;
 
   /// Switches this window to the student-facing display screen.
   final VoidCallback onOpenDisplay;
@@ -112,6 +115,7 @@ class _AdminShellState extends State<AdminShell> {
                     students: widget.students,
                     recorder: widget.recorder,
                     simulator: widget.simulator,
+                    autoConnect: widget.autoConnect,
                   ),
                   StudentsScreen(
                     students: widget.students,

@@ -150,7 +150,10 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
          file = SQLite copy with `accounts` dropped + `export_info`. Stored separately
          as officer_data.ecoearn, never mixed into the machine's DB.
        Group decision: no SD module, so officers get data via laptop export file.
-       Serial + deposit recording run regardless of who is signed in.
+       AutoConnect (app/lib/serial/auto_connect.dart): while an admin or display account is
+       signed in, connects to the first CH340/CP210 port every 3 s; disconnects on sign-out
+       (so nothing is recorded while signed out). Live screen Disconnect pauses it, Connect
+       resumes it.
        Solved: the "disappeared" test data came from running the app from Claude's
        sandbox, whose %APPDATA% is redirected to
        AppData\Local\Packages\Claude_*\LocalCache\Roaming. Claude's tools cannot see

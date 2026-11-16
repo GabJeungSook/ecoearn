@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/deposit_recorder.dart';
 import '../data/student_repository.dart';
 import '../serial/device_event.dart';
+import '../serial/auto_connect.dart';
 import '../serial/serial_connection.dart';
 import '../serial/simulator.dart';
 import '../theme/app_theme.dart';
@@ -74,6 +75,7 @@ class LiveScreen extends StatefulWidget {
     required this.students,
     required this.recorder,
     required this.simulator,
+    required this.autoConnect,
   });
 
   final SerialConnection connection;
@@ -81,6 +83,7 @@ class LiveScreen extends StatefulWidget {
   final StudentRepository students;
   final DepositRecorder recorder;
   final Simulator simulator;
+  final AutoConnect autoConnect;
 
   @override
   State<LiveScreen> createState() => _LiveScreenState();
@@ -177,9 +180,20 @@ class _LiveScreenState extends State<LiveScreen> {
       SizedBox(
         height: 40,
         child: connected
-            ? OutlinedButton(onPressed: connection.disconnect, child: const Text('Disconnect'))
+            ? OutlinedButton(
+                onPressed: () {
+                  widget.autoConnect.pause(); // stay disconnected until Connect is clicked
+                  connection.disconnect();
+                },
+                child: const Text('Disconnect'),
+              )
             : FilledButton(
-                onPressed: _selectedPort == null ? null : () => connection.connect(_selectedPort!),
+                onPressed: _selectedPort == null
+                    ? null
+                    : () {
+                        widget.autoConnect.resume();
+                        connection.connect(_selectedPort!);
+                      },
                 child: const Text('Connect'),
               ),
       ),
