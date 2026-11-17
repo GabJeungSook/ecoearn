@@ -200,6 +200,11 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
          at start + every 4 h (silent when offline); Update button in admin/officer sidebar and
          About card in Settings; downloads the installer, runs it /VERYSILENT, exits; the
          installer reopens EcoEarn. Developer runs (no APP_VERSION) never update.
+       - Build runs on windows-2022 + _SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS in
+         app/windows/CMakeLists.txt (VS 2026 rejects audioplayers' <experimental/coroutine>).
+         First working release: v1.0.2 (2026-11-17), EcoEarn-1.0.2-Setup.exe, 12.4 MB.
+       - GitHub's unauthenticated API allows 60 requests/hour per IP: the app checks every 4 h,
+         fine; don't poll the API heavily from the same network.
        - First install: download the Setup.exe from the repo's Releases page (unsigned, so
          Windows SmartScreen asks "More info -> Run anyway").
 4e. [x] Paying fees with points (schema v4: fees, payments, peso_rate_changes; settings
