@@ -134,12 +134,227 @@ tr:last-child td { border-bottom: 0; }
     <p>The card reader (RFID), the scale (load cell + HX711), the ESP32 program and the EcoEarn app are done and tested. You are building the body of the machine and the moving parts. When you finish each part, tell the developer so the program can be switched from "pretend" to "real" for that part.</p>
   </div>
   <nav class="toc" aria-label="Sections">
+    <a href="#today"><b>Start here: today's setup</b></a>
     <a href="#how">1. How it works</a><a href="#parts">2. Parts list</a><a href="#safety">3. Safety</a>
     <a href="#body">4. Body and chamber</a><a href="#crusher">5. Crusher</a><a href="#trapdoor">6. Trapdoor and drain</a>
     <a href="#scale">7. Scale and sweeper</a><a href="#bin">8. Bin</a><a href="#front">9. Front panel</a>
     <a href="#power">10. Power</a><a href="#wiring">11. Wiring</a><a href="#test">12. Testing</a><a href="#send">13. Tell the developer</a>
   </nav>
 </header>
+
+<!-- ============ START HERE: TODAY ============ -->
+<section class="section" id="today">
+  <span class="eyebrow">Start here · today's setup</span>
+  <h2>Where the laptop and your devices go</h2>
+  <p>Right now you have the ESP32, the card reader on the breadboard, the HX711 and the load cell, all joined with jumper wires, plus the laptop. This is how to place them in the machine today, before the motors and the other sensors arrive.</p>
+
+  <figure>
+    <div class="draw">
+    <svg viewBox="0 0 760 640" role="img" aria-labelledby="lay-t">
+      <title id="lay-t">Front view of the machine with the laptop on a side shelf, the card reader at chest height, and the cables between them</title>
+      <defs>
+        <pattern id="hatch2" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="8" stroke="var(--steel)" stroke-width="2" opacity=".35"/>
+        </pattern>
+      </defs>
+      <!-- floor -->
+      <line x1="20" y1="600" x2="740" y2="600" stroke="var(--muted)" stroke-width="2"/>
+      <text x="740" y="620" text-anchor="end" font-size="11" fill="var(--muted)">floor</text>
+      <!-- machine body -->
+      <rect x="320" y="40" width="250" height="560" rx="8" fill="var(--steel-soft)" stroke="var(--steel)" stroke-width="4"/>
+      <!-- electronics compartment (behind panel) -->
+      <rect x="330" y="50" width="230" height="110" rx="6" fill="none" stroke="var(--c-rfid)" stroke-width="2" stroke-dasharray="7 5"/>
+      <text x="445" y="152" text-anchor="middle" font-size="11" fill="var(--c-rfid)" font-weight="700">electronics compartment, behind the panel</text>
+      <!-- LCD later -->
+      <rect x="345" y="74" width="120" height="46" rx="4" fill="none" stroke="var(--c-lcd)" stroke-width="2" stroke-dasharray="4 4"/>
+      <text x="405" y="96" text-anchor="middle" font-size="11" fill="var(--c-lcd)" font-weight="700">LCD</text>
+      <text x="405" y="111" text-anchor="middle" font-size="10" fill="var(--c-lcd)">(later)</text>
+      <!-- RFID window -->
+      <rect x="485" y="68" width="66" height="62" rx="6" fill="var(--paper)" stroke="var(--c-rfid)" stroke-width="3"/>
+      <path d="M505 92 q13 -9 26 0 M509 99 q9 -6 18 0" fill="none" stroke="var(--c-rfid)" stroke-width="2"/>
+      <circle cx="518" cy="106" r="3" fill="var(--c-rfid)"/>
+      <text x="518" y="123" text-anchor="middle" font-size="10" fill="var(--c-rfid)" font-weight="700">TAP CARD</text>
+      <!-- lid -->
+      <rect x="385" y="185" width="120" height="230" rx="6" fill="var(--paper)" stroke="var(--ink)" stroke-width="2.5"/>
+      <rect x="397" y="197" width="96" height="170" rx="4" fill="var(--bottle)" opacity=".3"/>
+      <text x="445" y="290" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">LID</text>
+      <text x="445" y="306" text-anchor="middle" font-size="10" fill="var(--muted)">bottle goes in here</text>
+      <!-- scale shelf marker -->
+      <line x1="330" y1="470" x2="560" y2="470" stroke="var(--steel)" stroke-width="2" stroke-dasharray="6 4"/>
+      <text x="340" y="462" font-size="10" fill="var(--c-scale)" font-weight="700">scale shelf inside (load cell + HX711)</text>
+      <!-- bin door -->
+      <rect x="345" y="485" width="200" height="100" rx="6" fill="none" stroke="var(--steel)" stroke-width="2" stroke-dasharray="6 4"/>
+      <text x="445" y="540" text-anchor="middle" font-size="12" fill="var(--muted)" font-weight="700">BIN DOOR</text>
+      <!-- drain on right side -->
+      <path d="M570 430 C 600 430, 615 460, 615 520 L 615 545" fill="none" stroke="var(--water)" stroke-width="5"/>
+      <rect x="595" y="545" width="44" height="54" rx="4" fill="none" stroke="var(--water)" stroke-width="2.5"/>
+      <rect x="597" y="570" width="40" height="28" fill="var(--water)" opacity=".35"/>
+      <text x="650" y="560" font-size="11" fill="var(--water)" font-weight="700">drain on this side</text>
+      <text x="650" y="575" font-size="11" fill="var(--water)">(away from the laptop)</text>
+
+      <!-- laptop shelf, left side -->
+      <rect x="110" y="186" width="210" height="12" fill="var(--wood)" stroke="var(--ink)" stroke-width="1.5"/>
+      <rect x="110" y="176" width="8" height="12" fill="var(--wood)" stroke="var(--ink)" stroke-width="1"/>
+      <path d="M320 198 L 320 270 L 250 198 z" fill="url(#hatch2)" stroke="var(--steel)" stroke-width="2"/>
+      <!-- laptop -->
+      <path d="M126 186 L 300 186 L 292 176 L 134 176 z" fill="var(--steel)"/>
+      <rect x="140" y="60" width="146" height="114" rx="6" fill="var(--ink)"/>
+      <rect x="147" y="67" width="132" height="100" rx="3" fill="var(--paper)"/>
+      <rect x="147" y="67" width="132" height="16" fill="var(--green)"/>
+      <text x="213" y="79" text-anchor="middle" font-size="9" fill="var(--paper)" font-weight="700">EcoEarn display</text>
+      <text x="213" y="108" text-anchor="middle" font-size="12" fill="var(--ink)" font-weight="700">Tap your card</text>
+      <text x="213" y="126" text-anchor="middle" font-size="9" fill="var(--muted)">1 point per 10 g</text>
+      <rect x="170" y="138" width="86" height="16" rx="8" fill="var(--green-soft)"/>
+      <text x="213" y="150" text-anchor="middle" font-size="9" fill="var(--green)" font-weight="700">Total earned</text>
+      <!-- USB cable -->
+      <path d="M300 182 C 312 182, 316 150, 336 128" fill="none" stroke="var(--c-servo)" stroke-width="3.5"/>
+      <circle cx="336" cy="128" r="5" fill="var(--paper)" stroke="var(--c-servo)" stroke-width="2"/>
+      <!-- charger -->
+      <path d="M126 184 C 100 200, 96 300, 96 560 L 96 585" fill="none" stroke="var(--ink)" stroke-width="2"/>
+      <rect x="86" y="585" width="22" height="15" rx="2" fill="var(--ink)"/>
+      <text x="120" y="592" font-size="11" fill="var(--muted)">wall outlet: keep the laptop charging</text>
+      <!-- HX711 cable run inside (dashed down) -->
+      <path d="M545 150 L 545 470" fill="none" stroke="var(--c-scale)" stroke-width="2.5" stroke-dasharray="3 5"/>
+
+      <!-- height dims -->
+      <g stroke="var(--ink)" stroke-width="1.5" font-size="12" fill="var(--ink)">
+        <line x1="40" y1="186" x2="40" y2="600"/><line x1="33" y1="186" x2="47" y2="186"/>
+        <text x="30" y="400" stroke="none" text-anchor="middle" transform="rotate(-90 30 400)" font-weight="700">shelf about 85 cm</text>
+        <line x1="745" y1="99" x2="745" y2="600"/><line x1="738" y1="99" x2="752" y2="99"/>
+        <text x="732" y="350" stroke="none" text-anchor="middle" transform="rotate(90 732 350)" font-weight="700">card reader about 100 cm</text>
+        <line x1="660" y1="40" x2="690" y2="40"/>
+        <text x="656" y="44" stroke="none" text-anchor="end">115 cm</text>
+      </g>
+      <!-- callouts -->
+      <g font-size="12" font-weight="800" fill="var(--paper)" font-family="Archivo, Arial, sans-serif" text-anchor="middle">
+        <g><circle cx="213" cy="40" r="12" fill="var(--green)"/><text x="213" y="44">A</text></g>
+        <g><line x1="290" y1="250" x2="250" y2="300" stroke="var(--muted)"/><circle cx="240" cy="310" r="12" fill="var(--green)"/><text x="240" y="314">B</text></g>
+        <g><line x1="318" y1="150" x2="290" y2="240" stroke="var(--muted)" opacity="0"/><circle cx="318" cy="112" r="12" fill="var(--c-servo)"/><text x="318" y="116">C</text></g>
+        <g><circle cx="590" cy="70" r="12" fill="var(--c-rfid)"/><text x="590" y="74">D</text></g>
+        <g><circle cx="590" cy="300" r="12" fill="var(--c-scale)"/><text x="590" y="304">E</text></g>
+      </g>
+      <line x1="560" y1="300" x2="548" y2="300" stroke="var(--c-scale)" stroke-width="1.5"/>
+    </svg>
+    </div>
+    <ul class="legend">
+      <li><span class="k">A</span>Laptop in display mode, screen facing the students</li>
+      <li><span class="k">B</span>Side shelf with a lip, on the dry side</li>
+      <li><span class="k" style="background:var(--c-servo)">C</span>USB cable through a hole with a rubber grommet</li>
+      <li><span class="k" style="background:var(--c-rfid)">D</span>Card reader behind plastic; ESP32 + breadboard right behind it</li>
+      <li><span class="k" style="background:var(--c-scale)">E</span>4 wires from the breadboard down to the HX711 at the scale</li>
+    </ul>
+    <figcaption>Front view. The laptop is the machine's screen. Put it on the side opposite the drain, at a height students can read while standing.</figcaption>
+  </figure>
+
+  <div class="note">
+    <b>Why the breadboard goes right behind the card reader</b>
+    <p>The card reader's wires carry fast signals and only work when short, so the reader and the breadboard must be within your 20 cm jumpers. The HX711's signals are slow, so its wires can run about a meter down to the scale without problems.</p>
+  </div>
+
+  <figure>
+    <div class="draw">
+    <svg viewBox="0 0 760 360" role="img" aria-labelledby="box-t">
+      <title id="box-t">Side cut of the electronics compartment: card reader against the front window, breadboard and ESP32 on a board, wires down to the scale and out to the laptop</title>
+      <!-- outside -->
+      <text x="40" y="60" font-size="12" font-weight="700" fill="var(--ink)">FRONT</text>
+      <text x="40" y="76" font-size="11" fill="var(--muted)">students</text>
+      <text x="40" y="90" font-size="11" fill="var(--muted)">stand here</text>
+      <!-- card -->
+      <rect x="40" y="110" width="12" height="60" rx="3" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.5"/>
+      <text x="46" y="190" text-anchor="middle" font-size="10" fill="var(--muted)">card</text>
+      <!-- front panel -->
+      <rect x="90" y="30" width="10" height="70" fill="var(--steel)"/>
+      <rect x="90" y="100" width="10" height="80" fill="var(--bottle)" opacity=".6" stroke="var(--water)"/>
+      <rect x="90" y="180" width="10" height="130" fill="var(--steel)"/>
+      <text x="80" y="222" text-anchor="end" font-size="10" fill="var(--muted)" transform="rotate(-90 80 222)">front panel</text>
+      <text x="112" y="44" font-size="10" fill="var(--water)" font-weight="700">acrylic window</text>
+      <line x1="112" y1="48" x2="98" y2="104" stroke="var(--water)"/>
+      <!-- RFID board -->
+      <rect x="102" y="104" width="10" height="72" rx="2" fill="var(--c-rfid)"/>
+      <g fill="var(--ink)"><rect x="112" y="166" width="6" height="2"/><rect x="112" y="170" width="6" height="2"/></g>
+      <text x="124" y="122" font-size="11" fill="var(--c-rfid)" font-weight="700">card reader</text>
+      <text x="124" y="137" font-size="10" fill="var(--muted)">taped flat against</text>
+      <text x="124" y="150" font-size="10" fill="var(--muted)">the window</text>
+      <!-- compartment -->
+      <rect x="100" y="30" width="520" height="280" fill="none" stroke="var(--steel)" stroke-width="2" stroke-dasharray="8 5"/>
+      <!-- base board + foam -->
+      <rect x="160" y="290" width="400" height="6" fill="var(--muted)" opacity=".5"/>
+      <rect x="150" y="296" width="420" height="14" fill="var(--wood)" stroke="var(--ink)" stroke-width="1.5"/>
+      <text x="360" y="330" text-anchor="middle" font-size="11" fill="var(--muted)">plywood board on foam, screwed to the machine</text>
+      <!-- breadboard -->
+      <rect x="180" y="268" width="190" height="22" rx="3" fill="var(--paper)" stroke="var(--steel)" stroke-width="2"/>
+      <text x="275" y="283" text-anchor="middle" font-size="11" fill="var(--ink)" font-weight="700">breadboard</text>
+      <!-- ESP32 -->
+      <rect x="400" y="274" width="110" height="16" rx="3" fill="var(--ink)"/>
+      <text x="455" y="286" text-anchor="middle" font-size="10" fill="var(--paper)" font-weight="700">ESP32</text>
+      <rect x="510" y="278" width="12" height="8" fill="var(--steel)"/>
+      <path d="M392 270 l0 22 M518 270 l0 22" stroke="var(--c-servo)" stroke-width="3"/>
+      <text x="470" y="256" text-anchor="middle" font-size="10" fill="var(--c-servo)" font-weight="700" stroke="var(--paper)" stroke-width="4" paint-order="stroke">taped down at both ends</text>
+      <!-- RFID jumpers -->
+      <g fill="none" stroke-width="2">
+        <path d="M118 167 C 150 170, 170 240, 196 268" stroke="#e0443a"/>
+        <path d="M118 169 C 152 176, 178 240, 206 268" stroke="#f08a24"/>
+        <path d="M118 171 C 154 182, 186 240, 216 268" stroke="#e8c11a"/>
+        <path d="M118 171 C 156 188, 194 240, 226 268" stroke="#2fa84f"/>
+        <path d="M118 171 C 158 194, 202 240, 236 268" stroke="#2f7fc1"/>
+        <path d="M118 171 C 160 200, 210 240, 246 268" stroke="#7b4bd1"/>
+        <path d="M118 171 C 162 206, 218 240, 256 268" stroke="var(--muted)"/>
+      </g>
+      <text x="150" y="232" font-size="11" fill="var(--ink)" font-weight="700" stroke="var(--paper)" stroke-width="4" paint-order="stroke">7 jumpers,</text>
+      <text x="150" y="246" font-size="11" fill="var(--ink)" font-weight="700" stroke="var(--paper)" stroke-width="4" paint-order="stroke">under 20 cm</text>
+      <!-- breadboard to ESP32 -->
+      <g fill="none" stroke-width="2">
+        <path d="M300 268 C 330 230, 400 230, 420 274" stroke="#2f7fc1"/>
+        <path d="M312 268 C 340 236, 410 236, 434 274" stroke="#e0443a"/>
+        <path d="M324 268 C 350 242, 420 242, 448 274" stroke="#2fa84f"/>
+      </g>
+      <!-- hot glue dots -->
+      <g fill="var(--warn)"><circle cx="196" cy="268" r="3"/><circle cx="256" cy="268" r="3"/><circle cx="300" cy="268" r="3"/><circle cx="420" cy="274" r="3"/></g>
+      <text x="300" y="222" font-size="10" fill="var(--warn)" font-weight="700">dots = hot glue</text>
+      <!-- HX711 cable down -->
+      <path d="M350 290 L 350 300" stroke="var(--c-scale)" stroke-width="3"/>
+      <path d="M350 310 L 350 352" stroke="var(--c-scale)" stroke-width="3" stroke-dasharray="4 4"/>
+      <text x="360" y="350" font-size="11" fill="var(--c-scale)" font-weight="700">4 wires down to the HX711 (about 80 cm)</text>
+      <!-- USB out -->
+      <path d="M522 282 C 560 282, 590 240, 640 240 L 720 240" fill="none" stroke="var(--c-servo)" stroke-width="3.5"/>
+      <circle cx="620" cy="240" r="6" fill="var(--paper)" stroke="var(--ink)" stroke-width="2"/>
+      <text x="640" y="228" font-size="11" fill="var(--c-servo)" font-weight="700">USB to laptop</text>
+      <text x="640" y="262" font-size="10" fill="var(--muted)">zip-tie inside the wall</text>
+      <text x="640" y="275" font-size="10" fill="var(--muted)">so a pull can't yank it</text>
+    </svg>
+    </div>
+    <figcaption>The electronics compartment cut open from the side. The card reader faces out through the window. Everything else sits on one small board right behind it.</figcaption>
+  </figure>
+
+  <h3>Steps for today</h3>
+  <ol class="steps">
+    <li><div><b>Take the card reader off the breadboard</b><p>It is plugged straight into the breadboard now, but it has to sit on the front panel. First take a clear photo. Write down which breadboard row each of its pins is in. Then pull it out and connect its pins to the same rows with 7 male-to-female jumpers. IRQ stays unused.</p><p class="check">Tap a card in the app's Live screen. It should still show the card number.</p></div></li>
+    <li><div><b>Mount the card reader</b><p>Tape or screw it flat behind the acrylic window, the side with the printed coil facing out. Keep metal away from its front.</p></div></li>
+    <li><div><b>Mount the board with the breadboard and ESP32</b><p>Stick the breadboard onto a small plywood board, tape the ESP32 down beside it, put foam under the board, and screw it into the compartment right behind the card reader.</p></div></li>
+    <li><div><b>Run the HX711 wires down to the scale</b><p>Screw the HX711 onto the scale shelf next to the load cell, so the load cell's 4 colored wires stay short. For its 4 pins (GND, DT, SCK, VCC) to the breadboard, use a 4-core cable about 1 m long. Old Ethernet (LAN) cable works well: it has 8 thin wires inside. Solder a jumper end onto each wire and cover it with heat-shrink or tape. If there is no time, join jumpers end to end and tape each joint.</p><p class="check">Put coins on the tray 3 times. The weight should be the same each time.</p></div></li>
+    <li><div><b>Build the laptop shelf</b><p>A plywood shelf on the side of the machine, about 85 cm from the floor, with a small lip at the front edge so the laptop can't slide off. Put it on the side away from the drain hose.</p></div></li>
+    <li><div><b>Connect the laptop</b><p>Run the USB cable from the laptop through a hole in the machine wall to the ESP32. Zip-tie it inside so a pull on the cable doesn't reach the ESP32. Plug in the laptop's charger.</p></div></li>
+    <li><div><b>Start display mode</b><p>Sign in to EcoEarn as admin, then click the TV button in the sidebar. The laptop becomes the machine's screen and connects to the ESP32 by itself.</p></div></li>
+  </ol>
+
+  <div class="warn">
+    <b>Stop the laptop from sleeping</b>
+    <p>On the laptop: Windows Settings → System → Power → <b>Screen and sleep</b> → set "When plugged in, turn off my screen after" and "put my device to sleep after" to <b>Never</b>. If it sleeps, the machine stops recording deposits.</p>
+  </div>
+
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Connection</th><th>Wires</th><th>Length</th><th>Use</th></tr></thead>
+    <tbody>
+      <tr><td>Card reader → breadboard</td><td>7 (SDA, SCK, MOSI, MISO, RST, GND, 3.3V)</td><td>under 20 cm</td><td>Male-to-female jumpers</td></tr>
+      <tr><td>Breadboard → ESP32</td><td>as now</td><td>20 cm</td><td>Your current jumpers, hot-glued</td></tr>
+      <tr><td>HX711 → breadboard</td><td>4 (GND, DT, SCK, VCC)</td><td>about 1 m</td><td>4-core or LAN cable, soldered ends</td></tr>
+      <tr><td>Load cell → HX711</td><td>4 (red, black, white, green)</td><td>as short as possible</td><td>Already soldered, don't extend</td></tr>
+      <tr><td>ESP32 → laptop</td><td>USB-C cable</td><td>1–1.5 m</td><td>The same data cable that works now</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
 
 <!-- ============ 1. HOW IT WORKS ============ -->
 <section class="section" id="how">
