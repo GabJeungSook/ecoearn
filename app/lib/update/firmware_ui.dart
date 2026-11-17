@@ -109,33 +109,41 @@ class FirmwareBanner extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(
         listenable: updater,
         builder: (context, _) {
-          if (!updater.updateAvailable && !updater.busy) return const SizedBox.shrink();
+          final failed = updater.state == FlashState.failed;
+          if (!updater.updateAvailable && !updater.busy && !failed) return const SizedBox.shrink();
           final writing = updater.state == FlashState.writing;
           return Container(
             margin: const EdgeInsets.fromLTRB(32, 0, 32, 16),
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             decoration: BoxDecoration(
-              color: updater.state == FlashState.waitingForBoot ? EcoColors.amber.withValues(alpha: 0.14) : EcoColors.mint,
+              color: failed
+                  ? EcoColors.coral.withValues(alpha: 0.1)
+                  : updater.state == FlashState.waitingForBoot
+                      ? EcoColors.amber.withValues(alpha: 0.14)
+                      : EcoColors.mint,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Row(children: [
-              Icon(updater.busy ? Icons.downloading : Icons.memory, color: EcoColors.forest),
+              Icon(failed ? Icons.error_outline : (updater.busy ? Icons.downloading : Icons.memory),
+                  color: failed ? EcoColors.coral : EcoColors.forest),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  updater.busy
-                      ? '${updater.message}${writing ? ' ${((updater.progress ?? 0) * 100).round()}%' : ''}'
-                      : 'Machine firmware ${updater.bundledVersion} is ready to install '
-                          '(machine has ${updater.machineVersion ?? 'an older version'}).',
-                  style: const TextStyle(color: EcoColors.forest, fontWeight: FontWeight.w600),
+                  failed
+                      ? 'Machine update failed: ${updater.message}'
+                      : updater.busy
+                          ? '${updater.message}${writing ? ' ${((updater.progress ?? 0) * 100).round()}%' : ''}'
+                          : 'Machine firmware ${updater.bundledVersion} is ready to install '
+                              '(machine has ${updater.machineVersion ?? 'an older version'}).',
+                  style: TextStyle(color: failed ? EcoColors.coral : EcoColors.forest, fontWeight: FontWeight.w600),
                 ),
               ),
-              if (!updater.busy)
+              if (!updater.busy && updater.updateAvailable)
                 SizedBox(
                   height: 38,
                   child: FilledButton(
                     onPressed: () => confirmAndFlash(context, updater),
-                    child: const Text('Update machine'),
+                    child: Text(failed ? 'Try again' : 'Update machine'),
                   ),
                 ),
             ]),

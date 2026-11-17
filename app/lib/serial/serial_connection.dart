@@ -7,15 +7,25 @@ import 'package:flutter_libserialport/flutter_libserialport.dart';
 import 'device_event.dart';
 
 class PortInfo {
-  const PortInfo(this.name, this.description);
+  const PortInfo(this.name, this.description, {this.vendorId});
 
   final String name; // e.g. COM3
   final String description; // e.g. USB-SERIAL CH340 (COM3)
 
+  /// The USB chip maker's id, the same on every computer (the description
+  /// depends on the driver: "USB-SERIAL CH340", "USB2.0-Serial", ...).
+  final int? vendorId;
+
+  /// USB-to-serial chips used on ESP32 boards: WCH (CH340/CH9102), Silicon
+  /// Labs (CP210x), FTDI, and the ESP32-S2/S3's own USB.
+  static const esp32VendorIds = {0x1A86, 0x10C4, 0x0403, 0x303A};
+
   /// True for the USB chips used on ESP32 boards.
   bool get looksLikeEsp32 =>
+      esp32VendorIds.contains(vendorId) ||
       description.contains('CH340') ||
       description.contains('CH341') ||
+      description.contains('CH910') ||
       description.contains('CP210');
 }
 
@@ -57,7 +67,11 @@ class SerialConnection extends ChangeNotifier {
   static PortInfo _describe(String name) {
     final port = SerialPort(name);
     try {
-      return PortInfo(name, port.description ?? name);
+      int? vendorId;
+      try {
+        vendorId = port.vendorId; // only for USB ports
+      } catch (_) {}
+      return PortInfo(name, port.description ?? name, vendorId: vendorId);
     } finally {
       port.dispose();
     }

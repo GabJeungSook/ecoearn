@@ -85,17 +85,25 @@ class FirmwareUpdater extends ChangeNotifier {
     final connected = _connection.isConnected;
     if (connected && !_wasConnected) {
       _asked = false;
-      // Firmware 0.3.2+ answers with its boot message; older firmware ignores it.
-      Future.delayed(const Duration(milliseconds: 600), () {
-        if (!_connection.isConnected) return;
-        _connection.send('version');
-        Future.delayed(const Duration(seconds: 2), () {
-          _asked = true;
-          notifyListeners();
-        });
-      });
+      if (_state == FlashState.failed || _state == FlashState.done) _state = FlashState.idle;
+      unawaited(_askVersion());
     }
     _wasConnected = connected;
+    notifyListeners();
+  }
+
+  // Firmware 0.3.2+ answers "version" with its boot message; older firmware
+  // ignores it. Ask a few times: a board that restarts when the port opens
+  // (some drivers do that) needs a moment before it listens.
+  Future<void> _askVersion() async {
+    for (final wait in const [Duration(milliseconds: 600), Duration(seconds: 2), Duration(seconds: 3)]) {
+      await Future<void>.delayed(wait);
+      if (!_connection.isConnected) return;
+      if (_session.firmwareVersion != null) break;
+      _connection.send('version');
+    }
+    await Future<void>.delayed(const Duration(seconds: 2));
+    _asked = true;
     notifyListeners();
   }
 
@@ -118,7 +126,8 @@ class FirmwareUpdater extends ChangeNotifier {
     final int exitCode;
     try {
       final process = await Process.start(p.join(_folder, 'esptool.exe'), [
-        '--chip', 'esp32', '--port', port, '--baud', '460800',
+        // 115200: slower than 460800 but every driver, cable and USB port copes with it.
+        '--chip', 'esp32', '--port', port, '--baud', '115200',
         '--before', 'default-reset', '--after', 'hard-reset',
         'write-flash', '-z', '0x10000', p.join(_folder, 'ecoearn.bin'),
       ]);
@@ -129,7 +138,8 @@ class FirmwareUpdater extends ChangeNotifier {
       exitCode = await process.exitCode;
       killer.cancel();
     } catch (e) {
-      _finish(false, 'Could not start the firmware tool: $e');
+      _finish(false, 'Could not start the firmware tool ($e). If antivirus removed esptool.exe, '
+          'reinstall EcoEarn or allow it.');
       return;
     }
 
@@ -145,7 +155,8 @@ class FirmwareUpdater extends ChangeNotifier {
                 'on the ESP32 as soon as "Hold BOOT" appears, until writing starts.'
             : text.contains('could not open port') || text.contains('Access is denied')
                 ? 'Another program is using $port (is the Arduino Serial Monitor open?). Close it and try again.'
-                : 'The update didn\'t finish (code $exitCode). The machine keeps its old firmware; try again.',
+                : 'The update didn\'t finish (code $exitCode). The machine keeps its old firmware; try again. '
+                    'Details: ${_log.reversed.take(2).toList().reversed.join(' / ')}',
       );
     }
   }
