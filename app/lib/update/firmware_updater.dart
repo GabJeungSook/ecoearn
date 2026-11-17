@@ -43,6 +43,10 @@ class FirmwareUpdater extends ChangeNotifier {
   String? _bundledVersion;
   bool _wasConnected = false;
   bool _asked = false; // asked the machine for its version since connecting
+  bool _heard = false; // the machine sent something since connecting (so it is running)
+  String? _lastPort; // the machine's port, for a retry after the connection was closed
+  bool _manualSuggested = false;
+  bool _manualRun = false;
   FlashState _state = FlashState.idle;
   double? _progress;
   String? _message;
@@ -57,6 +61,9 @@ class FirmwareUpdater extends ChangeNotifier {
   FlashState get state => _state;
   double? get progress => _progress;
   String? get message => _message;
+  /// The automatic way failed to start upload mode: offer the manual BOOT + EN way.
+  bool get manualSuggested => _manualSuggested;
+
   bool get busy => const {FlashState.preparing, FlashState.waitingForBoot, FlashState.writing, FlashState.restarting}
       .contains(_state);
 
@@ -64,9 +71,13 @@ class FirmwareUpdater extends ChangeNotifier {
   /// that it can't say which, after being asked).
   bool get updateAvailable {
     final bundled = _bundledVersion;
-    if (bundled == null || !_connection.isConnected || busy) return false;
+    if (bundled == null || busy) return false;
+    // After a failed upload-mode attempt the port is free again; keep offering the retry.
+    if (_manualSuggested && _state == FlashState.failed) return true;
+    if (!_connection.isConnected) return false;
     final machine = _session.firmwareVersion;
-    if (machine == null || machine == 'demo') return _asked && machine == null;
+    // A machine that sends nothing at all may not be running; don't blame its firmware.
+    if (machine == null || machine == 'demo') return _asked && _heard && machine == null;
     return isNewer(bundled, machine);
   }
 
@@ -85,7 +96,11 @@ class FirmwareUpdater extends ChangeNotifier {
     final connected = _connection.isConnected;
     if (connected && !_wasConnected) {
       _asked = false;
-      if (_state == FlashState.failed || _state == FlashState.done) _state = FlashState.idle;
+      _heard = false;
+      _lastPort = _connection.portName;
+      if (_state == FlashState.done || (_state == FlashState.failed && !_manualSuggested)) {
+        _state = FlashState.idle;
+      }
       unawaited(_askVersion());
     }
     _wasConnected = connected;
@@ -108,14 +123,21 @@ class FirmwareUpdater extends ChangeNotifier {
   }
 
   void _onEvent(DeviceEvent event) {
-    if (event is BootEvent && !event.simulated) notifyListeners();
+    if (event.simulated) return;
+    _heard = true;
+    if (event is BootEvent) notifyListeners();
   }
 
-  /// Flashes the bundled firmware onto the machine.
-  Future<void> flash() async {
-    final port = _connection.portName;
+  /// Flashes the bundled firmware onto the machine. Normally esptool resets the
+  /// board into upload mode itself while the user holds BOOT. With [manual] the
+  /// user has already put it there (hold BOOT, tap EN, let go of BOOT), for
+  /// boards or USB drivers where the automatic reset doesn't work.
+  Future<void> flash({bool manual = false}) async {
+    final port = _connection.portName ?? _lastPort;
     final bundled = _bundledVersion;
     if (port == null || bundled == null || busy) return;
+    _manualSuggested = false;
+    _manualRun = manual;
 
     _set(FlashState.preparing, 'Getting the machine ready…');
     _log.clear();
@@ -128,7 +150,7 @@ class FirmwareUpdater extends ChangeNotifier {
       final process = await Process.start(p.join(_folder, 'esptool.exe'), [
         // 115200: slower than 460800 but every driver, cable and USB port copes with it.
         '--chip', 'esp32', '--port', port, '--baud', '115200',
-        '--before', 'default-reset', '--after', 'hard-reset',
+        '--before', manual ? 'no-reset' : 'default-reset', '--after', 'hard-reset',
         'write-flash', '-z', '0x10000', p.join(_folder, 'ecoearn.bin'),
       ]);
       final killer = Timer(const Duration(minutes: 3), process.kill);
@@ -145,14 +167,25 @@ class FirmwareUpdater extends ChangeNotifier {
 
     if (exitCode == 0) {
       _set(FlashState.restarting, 'Restarting the machine…');
-      _finish(true, 'Machine updated to firmware $bundled.');
+      _finish(
+          true,
+          manual
+              ? 'Machine updated to firmware $bundled. If the screen stays empty, press EN once to restart it.'
+              : 'Machine updated to firmware $bundled.');
     } else {
       final text = _log.join('\n');
+      final noUploadMode = text.contains('Failed to connect') ||
+          text.contains('Wrong boot mode') ||
+          text.contains('No serial data');
+      _manualSuggested = noUploadMode;
       _finish(
         false,
-        text.contains('Failed to connect') || text.contains('Wrong boot mode') || text.contains('No serial data')
-            ? 'The machine didn\'t enter upload mode. Press "Update machine" again and hold the BOOT button '
-                'on the ESP32 as soon as "Hold BOOT" appears, until writing starts.'
+        noUploadMode
+            ? manual
+                ? 'The machine still wasn\'t in upload mode. Hold BOOT, tap EN while holding it, '
+                    'let go of BOOT, and only then click Start.'
+                : 'The machine didn\'t enter upload mode by itself. Use "Manual mode" '
+                    '(BOOT + EN buttons) instead.'
             : text.contains('could not open port') || text.contains('Access is denied')
                 ? 'Another program is using $port (is the Arduino Serial Monitor open?). Close it and try again.'
                 : 'The update didn\'t finish (code $exitCode). The machine keeps its old firmware; try again. '
@@ -161,13 +194,26 @@ class FirmwareUpdater extends ChangeNotifier {
     }
   }
 
+  /// Closes the port so the user can put the board into upload mode by hand
+  /// (the app's open connection must not reset it meanwhile).
+  void releasePort() {
+    _lastPort = _connection.portName ?? _lastPort;
+    _autoConnect.pause();
+    _connection.disconnect();
+  }
+
+  /// The user cancelled the manual way: reconnect as usual.
+  void reclaimPort() => _autoConnect.resume();
+
   void _onOutput(String chunk) {
     for (final line in chunk.split(RegExp(r'[\r\n]+'))) {
       final text = line.trim();
       if (text.isEmpty) continue;
       _log.add(text);
       if (text.startsWith('Connecting')) {
-        _set(FlashState.waitingForBoot, 'Hold the BOOT button on the ESP32 now…');
+        _set(
+            FlashState.waitingForBoot,
+            _manualRun ? 'Looking for the machine in upload mode…' : 'Hold the BOOT button on the ESP32 now…');
       } else {
         final percent = RegExp(r'(\d+(?:\.\d+)?)\s*%').firstMatch(text);
         if (percent != null && (text.contains('Writing') || _state == FlashState.writing)) {

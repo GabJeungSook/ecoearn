@@ -25,6 +25,38 @@ Future<void> confirmAndFlash(BuildContext context, FirmwareUpdater updater) asyn
   if (ok == true) await updater.flash();
 }
 
+/// The manual way, for boards that don't go into upload mode by themselves:
+/// the app lets go of the port, the user presses BOOT + EN, then clicks Start.
+Future<void> confirmManualFlash(BuildContext context, FirmwareUpdater updater) async {
+  updater.releasePort();
+  const step = TextStyle(fontSize: 15, height: 1.5);
+  final ok = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      title: const Text('Manual mode: put the machine into upload mode'),
+      content: const Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('On the ESP32 board, next to the USB port, there are two small buttons: BOOT and EN.\n', style: step),
+        Text('1.  Press and HOLD the BOOT button.', style: step),
+        Text('2.  While still holding BOOT, press and release EN once.', style: step),
+        Text('3.  Let go of BOOT.', style: step),
+        Text('4.  Click Start below.\n', style: step),
+        Text('The machine is now waiting quietly (nothing on the screen is normal). '
+            'Calibration and the points rate are kept.'),
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+        FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Start')),
+      ],
+    ),
+  );
+  if (ok == true) {
+    await updater.flash(manual: true);
+  } else {
+    updater.reclaimPort();
+  }
+}
+
 /// Admin Settings card: the machine's firmware, the app's, and the update button with live steps.
 class MachineFirmwareCard extends StatelessWidget {
   const MachineFirmwareCard({super.key, required this.updater});
@@ -72,6 +104,16 @@ class MachineFirmwareCard extends StatelessWidget {
                   ]),
                 ),
                 const SizedBox(width: 12),
+                if (bundled != null && !updater.busy && (updater.updateAvailable || updater.manualSuggested)) ...[
+                  SizedBox(
+                    height: 44,
+                    child: OutlinedButton(
+                      onPressed: () => confirmManualFlash(context, updater),
+                      child: const Text('Manual mode'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 SizedBox(
                   height: 44,
                   child: FilledButton.icon(
@@ -138,6 +180,16 @@ class FirmwareBanner extends StatelessWidget {
                   style: TextStyle(color: failed ? EcoColors.coral : EcoColors.forest, fontWeight: FontWeight.w600),
                 ),
               ),
+              if (!updater.busy && updater.manualSuggested) ...[
+                SizedBox(
+                  height: 38,
+                  child: FilledButton(
+                    onPressed: () => confirmManualFlash(context, updater),
+                    child: const Text('Manual mode'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               if (!updater.busy && updater.updateAvailable)
                 SizedBox(
                   height: 38,
