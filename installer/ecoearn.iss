@@ -28,6 +28,7 @@ OutputBaseFilename=EcoEarn-{#AppVersion}-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\app\windows\runner\resources\app_icon.ico
 UninstallDisplayIcon={app}\ecoearn_app.exe
 ; Close a running EcoEarn before replacing its files.
 CloseApplications=force

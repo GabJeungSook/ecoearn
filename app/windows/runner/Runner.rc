@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.ecoearn" "\0"
-            VALUE "FileDescription", "ecoearn_app" "\0"
+            VALUE "CompanyName", "EcoEarn" "\0"
+            VALUE "FileDescription", "EcoEarn" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "ecoearn_app" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.ecoearn. All rights reserved." "\0"
             VALUE "OriginalFilename", "ecoearn_app.exe" "\0"
-            VALUE "ProductName", "ecoearn_app" "\0"
+            VALUE "ProductName", "EcoEarn" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
