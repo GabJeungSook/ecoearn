@@ -1,0 +1,80 @@
+# Every push to main that changes the app becomes an update for the group's
+# laptops: test, build the Windows app, package the installer and publish it as
+# a GitHub release. The app's updater looks for the newest release.
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "installer/**"
+      - ".github/workflows/release.yml"
+  workflow_dispatch: # also a "Run workflow" button on the Actions tab
+
+permissions:
+  contents: write # to create the release
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: app
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.9 # same as app/.fvmrc
+          channel: stable
+          cache: true
+
+      - name: Version
+        id: version
+        run: |
+          $v = "1.0.${{ github.run_number }}"
+          "value=$v" >> $env:GITHUB_OUTPUT
+          Write-Host "Releasing EcoEarn $v"
+
+      - name: Get packages
+        run: flutter pub get
+
+      - name: Test (a failing test stops the release)
+        run: flutter test
+
+      - name: Build
+        run: >
+          flutter build windows --release
+          --build-name=${{ steps.version.outputs.value }}
+          --build-number=${{ github.run_number }}
+          --dart-define=APP_VERSION=${{ steps.version.outputs.value }}
+
+      - name: Add the Visual C++ runtime next to the app
+        # So it runs on laptops that don't have Microsoft's runtime installed.
+        run: |
+          $release = "build\windows\x64\runner\Release"
+          foreach ($dll in "msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll") {
+            Copy-Item "$env:WINDIR\System32\$dll" $release
+          }
+
+      - name: Package the installer
+        working-directory: .
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y; }
+          & $iscc "/DAppVersion=${{ steps.version.outputs.value }}" "/DSourceDir=$PWD\app\build\windows\x64\runner\Release" installer\ecoearn.iss
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.value }}
+          name: EcoEarn ${{ steps.version.outputs.value }}
+          target_commitish: ${{ github.sha }}
+          body: ${{ github.event.head_commit.message }}
+          files: dist/EcoEarn-${{ steps.version.outputs.value }}-Setup.exe

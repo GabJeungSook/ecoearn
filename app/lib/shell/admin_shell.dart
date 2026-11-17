@@ -17,6 +17,7 @@ import '../serial/auto_connect.dart';
 import '../serial/serial_connection.dart';
 import '../serial/simulator.dart';
 import '../settings/settings_screen.dart';
+import '../update/updater.dart';
 import '../students/students_screen.dart';
 import '../widgets/motion.dart';
 import 'app_sidebar.dart';
@@ -38,6 +39,7 @@ class AdminShell extends StatefulWidget {
     required this.rules,
     required this.autoConnect,
     required this.fees,
+    required this.updater,
     required this.onOpenDisplay,
   });
 
@@ -49,6 +51,7 @@ class AdminShell extends StatefulWidget {
   final PointRules rules;
   final AutoConnect autoConnect;
   final FeeBook fees;
+  final Updater updater;
 
   /// Switches this window to the student-facing display screen.
   final VoidCallback onOpenDisplay;
@@ -99,6 +102,7 @@ class _AdminShellState extends State<AdminShell> {
               selectedIndex: _screen,
               onSelected: (i) => setState(() => _screen = i),
               onOpenDisplay: widget.onOpenDisplay,
+              updater: widget.updater,
               items: const [
                 SidebarItem(Icons.sensors, 'Live'),
                 SidebarItem(Icons.people_outline, 'Students'),
@@ -132,7 +136,13 @@ class _AdminShellState extends State<AdminShell> {
                     onExportForOfficers: _exportForOfficers,
                   ),
                   AccountsScreen(auth: widget.auth),
-                  SettingsScreen(rules: widget.rules, fees: widget.fees, auth: widget.auth, connection: widget.connection),
+                  SettingsScreen(
+                    rules: widget.rules,
+                    fees: widget.fees,
+                    auth: widget.auth,
+                    connection: widget.connection,
+                    updater: widget.updater,
+                  ),
                 ],
               ),
             ),

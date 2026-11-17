@@ -10,14 +10,24 @@ import '../theme/app_theme.dart';
 import '../widgets/motion.dart';
 import '../widgets/page_parts.dart';
 import '../widgets/stat_card.dart';
+import '../update/update_ui.dart';
+import '../update/updater.dart';
 import 'fee_settings.dart';
 
 /// Admin settings: the points rate, with a history of changes.
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, required this.rules, required this.fees, required this.auth, required this.connection});
+  const SettingsScreen({
+    super.key,
+    required this.rules,
+    required this.fees,
+    required this.auth,
+    required this.connection,
+    required this.updater,
+  });
 
   final PointRules rules;
   final FeeBook fees;
+  final Updater updater;
   final AuthService auth;
   final SerialConnection connection;
 
@@ -144,6 +154,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     note: 'Fees and the peso value go to the officers with the next data file '
                         '(Reports → Export). Officers pay the fees on their computer.',
                   ),
+                  const SizedBox(height: 36),
+                  const SmallLabel('About and updates'),
+                  const SizedBox(height: 10),
+                  UpdateCard(updater: widget.updater),
                 ]),
               ),
             ],

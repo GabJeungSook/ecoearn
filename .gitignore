@@ -11,3 +11,6 @@ firmware/**/build/
 *.db
 *.sqlite
 *.csv
+
+# Installer output
+dist/

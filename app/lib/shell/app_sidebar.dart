@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../auth/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand.dart';
+import '../update/update_ui.dart';
+import '../update/updater.dart';
 import '../widgets/motion.dart';
 import 'window_controls.dart';
 
@@ -23,6 +25,7 @@ class AppSidebar extends StatelessWidget {
     required this.onSelected,
     this.action,
     this.onOpenDisplay,
+    this.updater,
   });
 
   final AuthService auth;
@@ -37,6 +40,9 @@ class AppSidebar extends StatelessWidget {
 
   /// Shows an "Open display screen" button (admin only).
   final VoidCallback? onOpenDisplay;
+
+  /// Shows an Update button when a newer version is available.
+  final Updater? updater;
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +66,7 @@ class AppSidebar extends StatelessWidget {
               onTap: onSelected == null ? null : () => onSelected!(i),
             ),
           const Spacer(),
+          if (updater != null) SidebarUpdateButton(updater: updater!),
           if (onOpenDisplay != null)
             _FooterButton(
               icon: Icons.tv_rounded,

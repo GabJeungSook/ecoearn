@@ -23,6 +23,7 @@ import 'shell/display_kiosk.dart';
 import 'shell/officer_shell.dart';
 import 'sound/card_beeper.dart';
 import 'theme/app_theme.dart';
+import 'update/updater.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -95,6 +96,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
   late final _simulator = Simulator(connection: _connection, students: widget.students, rules: widget.rules);
   late final _rateSync = RateSync(connection: _connection, rules: widget.rules);
   late final _autoConnect = AutoConnect(connection: _connection, auth: widget.auth);
+  final _updater = Updater();
 
   /// The admin opened the display screen from the sidebar; unlocking it returns to admin.
   bool _adminOnDisplay = false;
@@ -105,11 +107,13 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
     _beeper; // start listening for card taps right away
     _rateSync; // and keep the machine's points rate in step
     _autoConnect; // and connect to the machine whenever someone is signed in
+    _updater.start(); // and look for a newer version when online
   }
 
   @override
   void dispose() {
     _autoConnect.dispose();
+    _updater.dispose();
     _rateSync.dispose();
     _simulator.dispose();
     _beeper.dispose();
@@ -164,6 +168,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
               rules: widget.rules,
               autoConnect: _autoConnect,
               fees: widget.fees,
+              updater: _updater,
               onOpenDisplay: () => setState(() => _adminOnDisplay = true),
             ),
           Role.display => DisplayKiosk(
@@ -177,6 +182,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
             ),
           Role.officer => OfficerShell(
               auth: widget.auth,
+              updater: _updater,
               data: widget.officerData,
               connection: _connection,
             ),

@@ -13,6 +13,8 @@ import '../theme/app_theme.dart';
 import '../widgets/motion.dart';
 import '../widgets/page_parts.dart';
 import '../settings/fee_settings.dart';
+import '../update/update_ui.dart';
+import '../update/updater.dart';
 import 'app_sidebar.dart';
 import 'window_controls.dart';
 
@@ -21,11 +23,13 @@ class OfficerShell extends StatefulWidget {
   const OfficerShell({
     super.key,
     required this.auth,
+    required this.updater,
     required this.data,
     required this.connection,
   });
 
   final AuthService auth;
+  final Updater updater;
   final OfficerData data;
   final SerialConnection connection;
 
@@ -69,6 +73,7 @@ class _OfficerShellState extends State<OfficerShell> {
                 AppSidebar(
                   auth: widget.auth,
                   selectedIndex: _screen,
+                  updater: widget.updater,
                   onSelected: data.hasData ? (i) => setState(() => _screen = i) : null,
                   action: SquareIconButton(
                     icon: Icons.file_open_outlined,
@@ -106,7 +111,11 @@ class _OfficerShellState extends State<OfficerShell> {
                               students: students,
                               officerName: widget.auth.current?.displayName ?? '',
                             ),
-                            _OfficerSettings(fees: data.fees!, changedBy: widget.auth.current?.displayName ?? ''),
+                            _OfficerSettings(
+                              fees: data.fees!,
+                              updater: widget.updater,
+                              changedBy: widget.auth.current?.displayName ?? '',
+                            ),
                           ],
                         ),
                 ),
@@ -141,9 +150,10 @@ class _OfficerShellState extends State<OfficerShell> {
 }
 
 class _OfficerSettings extends StatelessWidget {
-  const _OfficerSettings({required this.fees, required this.changedBy});
+  const _OfficerSettings({required this.fees, required this.updater, required this.changedBy});
 
   final FeeBook fees;
+  final Updater updater;
   final String changedBy;
 
   @override
@@ -160,6 +170,14 @@ class _OfficerSettings extends StatelessWidget {
                 note: 'Changes here stay on this computer. When the admin changes a fee or the peso value, '
                     'the newer change wins at the next import.',
               ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(32, 36, 32, 0),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const SmallLabel('About and updates'),
+                const SizedBox(height: 10),
+                UpdateCard(updater: updater),
+              ]),
             ),
           ],
         ),

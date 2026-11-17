@@ -190,6 +190,18 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
        Summary | Transactions toggle (all students, search, accepted/rejected filter, click row ->
        student record). Student form: labeled fields (LabeledField), "Edit details" button,
        double-click a student to edit.
+4j. [x] One-click updates (group decision 2026-11-17: repo made PUBLIC, every push to main
+       that touches app/, installer/ or the workflow is a release).
+       - .github/workflows/release.yml (windows-latest): flutter test, build release with
+         --dart-define=APP_VERSION=1.0.<run_number>, copy VC++ runtime DLLs, Inno Setup
+         (installer/ecoearn.iss: per-user install to %LOCALAPPDATA%\Programs\EcoEarn, no admin),
+         publish GitHub release v1.0.N with EcoEarn-1.0.N-Setup.exe.
+       - app/lib/update: Updater checks api.github.com/repos/GabJeungSook/ecoearn/releases/latest
+         at start + every 4 h (silent when offline); Update button in admin/officer sidebar and
+         About card in Settings; downloads the installer, runs it /VERYSILENT, exits; the
+         installer reopens EcoEarn. Developer runs (no APP_VERSION) never update.
+       - First install: download the Setup.exe from the repo's Releases page (unsigned, so
+         Windows SmartScreen asks "More info -> Run anyway").
 4e. [x] Paying fees with points (schema v4: fees, payments, peso_rate_changes; settings
        pesos_per_point + pesos_per_point_changed_at). Group decision 2026-11-17:
        - Payments only on the OFFICER computer (Payments screen). Fee paid in full, never partly:
