@@ -14,6 +14,7 @@
 //   cal 74     calibrate: tare first, put a known weight on, then cal <its grams>
 //   weigh      print the current weight (to check the calibration)
 //   rate 10    points rate: 1 point per 10 g, saved in flash (the app sends it)
+//   version    answer with the boot message (firmware version and rate)
 
 #include "config.h"
 #include <Preferences.h>
@@ -333,6 +334,8 @@ void handleCommand(String line) {
     registerMode = true;
     registerStarted = millis();
     Serial.println("# Register mode: tap a card to read it (no deposit).");
+  } else if (line == "version") {
+    sendBoot();   // the app asks after connecting, to see if a firmware update is due
   } else if (line == "cancel") {
     registerMode = false;
   } else if (line == "tare") {
@@ -362,7 +365,7 @@ void handleCommand(String line) {
     else Serial.printf("# Weight: %.1f g\n", readGramsOnce());
 #endif
   } else if (line.length() > 0) {
-    Serial.println("# Unknown command. Commands: register, cancel, tare, cal <grams>, weigh, rate <grams>");
+    Serial.println("# Unknown command. Commands: register, cancel, tare, cal <grams>, weigh, rate <grams>, version");
   }
 }
 

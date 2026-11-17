@@ -10,6 +10,8 @@ import '../theme/app_theme.dart';
 import '../widgets/page_parts.dart';
 import '../widgets/stat_card.dart';
 import 'live_session.dart';
+import '../update/firmware_ui.dart';
+import '../update/firmware_updater.dart';
 import 'scale_dialog.dart';
 import 'stages.dart';
 
@@ -79,6 +81,7 @@ class LiveScreen extends StatefulWidget {
     required this.recorder,
     required this.simulator,
     required this.autoConnect,
+    required this.firmware,
   });
 
   final SerialConnection connection;
@@ -87,6 +90,7 @@ class LiveScreen extends StatefulWidget {
   final DepositRecorder recorder;
   final Simulator simulator;
   final AutoConnect autoConnect;
+  final FirmwareUpdater firmware;
 
   @override
   State<LiveScreen> createState() => _LiveScreenState();
@@ -143,6 +147,7 @@ class _LiveScreenState extends State<LiveScreen> {
                 title: 'Live',
                 actions: _connectionActions(),
               ),
+              FirmwareBanner(updater: widget.firmware),
               for (final error in [connection.error, widget.recorder.error])
                 if (error != null)
                   Padding(

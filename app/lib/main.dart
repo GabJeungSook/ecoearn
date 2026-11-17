@@ -23,6 +23,7 @@ import 'shell/display_kiosk.dart';
 import 'shell/officer_shell.dart';
 import 'sound/card_beeper.dart';
 import 'theme/app_theme.dart';
+import 'update/firmware_updater.dart';
 import 'update/updater.dart';
 
 Future<void> main() async {
@@ -97,6 +98,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
   late final _rateSync = RateSync(connection: _connection, rules: widget.rules);
   late final _autoConnect = AutoConnect(connection: _connection, auth: widget.auth);
   final _updater = Updater();
+  late final _firmware = FirmwareUpdater(connection: _connection, autoConnect: _autoConnect, session: _session);
 
   /// The admin opened the display screen from the sidebar; unlocking it returns to admin.
   bool _adminOnDisplay = false;
@@ -108,12 +110,14 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
     _rateSync; // and keep the machine's points rate in step
     _autoConnect; // and connect to the machine whenever someone is signed in
     _updater.start(); // and look for a newer version when online
+    _firmware; // and offer machine firmware updates when the machine is older
   }
 
   @override
   void dispose() {
     _autoConnect.dispose();
     _updater.dispose();
+    _firmware.dispose();
     _rateSync.dispose();
     _simulator.dispose();
     _beeper.dispose();
@@ -169,6 +173,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
               autoConnect: _autoConnect,
               fees: widget.fees,
               updater: _updater,
+              firmware: _firmware,
               onOpenDisplay: () => setState(() => _adminOnDisplay = true),
             ),
           Role.display => DisplayKiosk(

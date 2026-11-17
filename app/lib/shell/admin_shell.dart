@@ -17,6 +17,7 @@ import '../serial/auto_connect.dart';
 import '../serial/serial_connection.dart';
 import '../serial/simulator.dart';
 import '../settings/settings_screen.dart';
+import '../update/firmware_updater.dart';
 import '../update/updater.dart';
 import '../students/students_screen.dart';
 import '../widgets/motion.dart';
@@ -40,6 +41,7 @@ class AdminShell extends StatefulWidget {
     required this.autoConnect,
     required this.fees,
     required this.updater,
+    required this.firmware,
     required this.onOpenDisplay,
   });
 
@@ -52,6 +54,7 @@ class AdminShell extends StatefulWidget {
   final AutoConnect autoConnect;
   final FeeBook fees;
   final Updater updater;
+  final FirmwareUpdater firmware;
 
   /// Switches this window to the student-facing display screen.
   final VoidCallback onOpenDisplay;
@@ -123,6 +126,7 @@ class _AdminShellState extends State<AdminShell> {
                     recorder: widget.recorder,
                     simulator: widget.simulator,
                     autoConnect: widget.autoConnect,
+                    firmware: widget.firmware,
                   ),
                   StudentsScreen(
                     students: widget.students,
@@ -142,6 +146,7 @@ class _AdminShellState extends State<AdminShell> {
                     auth: widget.auth,
                     connection: widget.connection,
                     updater: widget.updater,
+                    firmware: widget.firmware,
                   ),
                 ],
               ),

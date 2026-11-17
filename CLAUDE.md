@@ -205,6 +205,12 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
          First working release: v1.0.2 (2026-11-17), EcoEarn-1.0.2-Setup.exe, 12.4 MB.
        - GitHub's unauthenticated API allows 60 requests/hour per IP: the app checks every 4 h,
          fine; don't poll the API heavily from the same network.
+       - Machine firmware updates (app/lib/update/firmware_updater.dart): the release workflow
+         compiles firmware/ecoearn with arduino-cli and bundles firmware/ecoearn.bin + version.txt
+         + esptool.exe (from the esp32 core) next to the exe. On connect the app sends `version`
+         (firmware 0.3.2+ replies with its boot message); if older, Live banner + Settings card
+         "Update machine": esptool write-flash 0x10000 only (calibration/rate in NVS kept);
+         user holds BOOT at "Connecting". Tested on the board 2026-11-17 (0.3.1 -> 0.3.2).
        - First install: download the Setup.exe from the repo's Releases page (unsigned, so
          Windows SmartScreen asks "More info -> Run anyway").
 4e. [x] Paying fees with points (schema v4: fees, payments, peso_rate_changes; settings

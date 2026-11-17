@@ -10,6 +10,8 @@ import '../theme/app_theme.dart';
 import '../widgets/motion.dart';
 import '../widgets/page_parts.dart';
 import '../widgets/stat_card.dart';
+import '../update/firmware_ui.dart';
+import '../update/firmware_updater.dart';
 import '../update/update_ui.dart';
 import '../update/updater.dart';
 import 'fee_settings.dart';
@@ -23,11 +25,13 @@ class SettingsScreen extends StatefulWidget {
     required this.auth,
     required this.connection,
     required this.updater,
+    required this.firmware,
   });
 
   final PointRules rules;
   final FeeBook fees;
   final Updater updater;
+  final FirmwareUpdater firmware;
   final AuthService auth;
   final SerialConnection connection;
 
@@ -158,6 +162,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SmallLabel('About and updates'),
                   const SizedBox(height: 10),
                   UpdateCard(updater: widget.updater),
+                  const SizedBox(height: 16),
+                  MachineFirmwareCard(updater: widget.firmware),
                 ]),
               ),
             ],

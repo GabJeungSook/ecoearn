@@ -9,6 +9,7 @@ on:
     paths:
       - "app/**"
       - "installer/**"
+      - "firmware/ecoearn/**"
       - ".github/workflows/release.yml"
   workflow_dispatch: # also a "Run workflow" button on the Actions tab
 
@@ -29,6 +30,8 @@ jobs:
         shell: pwsh
     steps:
       - uses: actions/checkout@v5
+
+      - uses: arduino/setup-arduino-cli@v2
 
       - uses: subosito/flutter-action@v2
         with:
@@ -55,6 +58,23 @@ jobs:
           --build-name=${{ steps.version.outputs.value }}
           --build-number=${{ github.run_number }}
           --dart-define=APP_VERSION=${{ steps.version.outputs.value }}
+
+      - name: Compile the machine firmware
+        # Shipped with the app, which flashes it onto the ESP32 ("Update machine").
+        working-directory: .
+        run: |
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32@3.3.12 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli lib install "MFRC522@1.4.12" "HX711 Arduino Library@0.7.5"
+          arduino-cli compile --fqbn esp32:esp32:esp32 firmware/ecoearn --output-dir fwbuild
+          $fw = "app/build/windows/x64/runner/Release/firmware"
+          New-Item -ItemType Directory -Force $fw | Out-Null
+          Copy-Item fwbuild/ecoearn.ino.bin "$fw/ecoearn.bin"
+          $version = (Select-String -Path firmware/ecoearn/config.h -Pattern '#define FIRMWARE_VERSION "([^"]+)"').Matches[0].Groups[1].Value
+          Set-Content -Path "$fw/version.txt" -Value $version -NoNewline
+          $esptool = Get-ChildItem "$env:LOCALAPPDATA/Arduino15/packages/esp32/tools/esptool_py/*/esptool.exe" | Select-Object -First 1
+          Copy-Item $esptool.FullName $fw
+          Write-Host "Bundled firmware $version"
 
       - name: Add the Visual C++ runtime next to the app
         # So it runs on laptops that don't have Microsoft's runtime installed.
