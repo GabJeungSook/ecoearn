@@ -8,6 +8,7 @@ import 'auth/auth_service.dart';
 import 'auth/login_screen.dart';
 import 'data/app_database.dart';
 import 'data/deposit_recorder.dart';
+import 'data/fees.dart';
 import 'data/officer_data.dart';
 import 'data/point_rules.dart';
 import 'data/reports.dart';
@@ -38,6 +39,8 @@ Future<void> main() async {
   await auth.load();
   final rules = PointRules(db);
   await rules.load();
+  final fees = FeeBook(db);
+  await fees.load();
   final officerData = OfficerData(p.dirname(databasePath));
   await officerData.open();
 
@@ -47,6 +50,7 @@ Future<void> main() async {
     students: students,
     auth: auth,
     rules: rules,
+    fees: fees,
     officerData: officerData,
   ));
 }
@@ -59,6 +63,7 @@ class EcoEarnApp extends StatefulWidget {
     required this.students,
     required this.auth,
     required this.rules,
+    required this.fees,
     required this.officerData,
   });
 
@@ -67,6 +72,7 @@ class EcoEarnApp extends StatefulWidget {
   final StudentRepository students;
   final AuthService auth;
   final PointRules rules;
+  final FeeBook fees;
   final OfficerData officerData;
 
   @override
@@ -113,6 +119,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
     widget.officerData.dispose();
     widget.auth.dispose();
     widget.rules.dispose();
+    widget.fees.dispose();
     widget.students.dispose();
     widget.db.close();
     super.dispose();
@@ -156,6 +163,7 @@ class _EcoEarnAppState extends State<EcoEarnApp> {
               simulator: _simulator,
               rules: widget.rules,
               autoConnect: _autoConnect,
+              fees: widget.fees,
               onOpenDisplay: () => setState(() => _adminOnDisplay = true),
             ),
           Role.display => DisplayKiosk(

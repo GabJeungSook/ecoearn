@@ -190,7 +190,20 @@ Use the breadboard +/− rails to share the ESP32's 3.3 V and GND.
        Summary | Transactions toggle (all students, search, accepted/rejected filter, click row ->
        student record). Student form: labeled fields (LabeledField), "Edit details" button,
        double-click a student to edit.
-4e. [ ] Fine deductions (needs eligible fines + points-to-peso rate from the group)
+4e. [x] Paying fees with points (schema v4: fees, payments, peso_rate_changes; settings
+       pesos_per_point + pesos_per_point_changed_at). Group decision 2026-11-17:
+       - Payments only on the OFFICER computer (Payments screen). Fee paid in full, never partly:
+         points needed = ceil(amount / pesos_per_point); refused if the balance is short
+         (checked inside the transaction). Void with a reason; never deleted.
+       - Balance = deposits earned - non-voided payments. Points only arrive via imports and
+         only leave on the officer side, so a stale import shows too few points, never too many.
+         Only ONE officer computer may take payments (others' deductions are invisible).
+       - Fees + peso value editable in admin Settings AND officer Settings (data/fees.dart,
+         settings/fee_settings.dart). Admin's go to officers in the data file; merge keeps the
+         newest change (fees by updated_at, rate by pesos_per_point_changed_at). Officer changes
+         don't flow back to the admin.
+       - Machine side shows "points earned" (it never sees payments); kiosk "Total earned".
+       - Payments CSV export; student record has Deposits | Fees paid.
 5. [ ] After soldering: wire + test MFRC522, then HX711 (calibrate with known weights)
        MFRC522 wiring (ESP32 left column, USB up): SDA→D5, SCK→D18, MOSI→D23,
        MISO→D19, RST→D22, GND→GND, 3.3V→3V3, IRQ unused. Test sketch:

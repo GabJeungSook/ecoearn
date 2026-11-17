@@ -5,6 +5,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../auth/accounts_screen.dart';
 import '../auth/auth_service.dart';
 import '../data/deposit_recorder.dart';
+import '../data/fees.dart';
 import '../data/officer_data.dart';
 import '../data/point_rules.dart';
 import '../data/reports.dart';
@@ -36,6 +37,7 @@ class AdminShell extends StatefulWidget {
     required this.simulator,
     required this.rules,
     required this.autoConnect,
+    required this.fees,
     required this.onOpenDisplay,
   });
 
@@ -46,6 +48,7 @@ class AdminShell extends StatefulWidget {
   final Simulator simulator;
   final PointRules rules;
   final AutoConnect autoConnect;
+  final FeeBook fees;
 
   /// Switches this window to the student-facing display screen.
   final VoidCallback onOpenDisplay;
@@ -129,7 +132,7 @@ class _AdminShellState extends State<AdminShell> {
                     onExportForOfficers: _exportForOfficers,
                   ),
                   AccountsScreen(auth: widget.auth),
-                  SettingsScreen(rules: widget.rules, auth: widget.auth, connection: widget.connection),
+                  SettingsScreen(rules: widget.rules, fees: widget.fees, auth: widget.auth, connection: widget.connection),
                 ],
               ),
             ),

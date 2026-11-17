@@ -5,7 +5,8 @@ class Student {
     required this.name,
     this.gradeSection = '',
     this.rfidUid,
-    this.points = 0,
+    this.earned = 0,
+    this.spent = 0,
   });
 
   factory Student.fromRow(Map<String, Object?> row) => Student(
@@ -14,7 +15,8 @@ class Student {
         name: row['name'] as String,
         gradeSection: row['grade_section'] as String,
         rfidUid: row['rfid_uid'] as String?,
-        points: (row['points'] as int?) ?? 0,
+        earned: (row['earned'] as int?) ?? 0,
+        spent: (row['spent'] as int?) ?? 0,
       );
 
   /// Null until the student is saved.
@@ -24,8 +26,15 @@ class Student {
   final String gradeSection;
   final String? rfidUid;
 
-  /// Point balance: everything earned from deposits. (Fine deductions come later.)
-  final int points;
+  /// Points earned from deposits.
+  final int earned;
+
+  /// Points used to pay fees (not voided). Payments are made on the officer's
+  /// computer, so on the machine's computer this is always 0.
+  final int spent;
+
+  /// Points left to spend.
+  int get points => earned - spent;
 
   /// Card UIDs are stored as uppercase hex with no separators, e.g. "A3F29B11".
   static String? normalizeUid(String? input) {

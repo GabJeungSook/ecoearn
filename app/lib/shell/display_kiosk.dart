@@ -385,7 +385,7 @@ class _DisplayKioskState extends State<DisplayKiosk> with WindowListener {
         _ResultChip(icon: Icons.scale_outlined, text: '$grams g recycled'),
         if (student != null) ...[
           const SizedBox(width: 12),
-          _ResultChip(icon: Icons.account_balance_wallet_outlined, text: 'Total: ${student.points} pts'),
+          _ResultChip(icon: Icons.account_balance_wallet_outlined, text: 'Total earned: ${student.earned} pts'),
         ],
       ]),
       const SizedBox(height: 24),

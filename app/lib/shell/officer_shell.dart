@@ -2,7 +2,9 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
+import '../data/fees.dart';
 import '../data/officer_data.dart';
+import '../payments/payments_screen.dart';
 import '../serial/serial_connection.dart';
 import '../reports/reports_screen.dart';
 import '../students/students_screen.dart';
@@ -10,6 +12,7 @@ import '../widgets/stat_card.dart';
 import '../theme/app_theme.dart';
 import '../widgets/motion.dart';
 import '../widgets/page_parts.dart';
+import '../settings/fee_settings.dart';
 import 'app_sidebar.dart';
 import 'window_controls.dart';
 
@@ -76,10 +79,12 @@ class _OfficerShellState extends State<OfficerShell> {
                   items: const [
                     SidebarItem(Icons.bar_chart_rounded, 'Reports'),
                     SidebarItem(Icons.people_outline, 'Students'),
+                    SidebarItem(Icons.point_of_sale, 'Payments'),
+                    SidebarItem(Icons.tune_rounded, 'Settings'),
                   ],
                 ),
                 Expanded(
-                  child: students == null || reports == null
+                  child: students == null || reports == null || data.fees == null || data.payments == null
                       ? _noData(context)
                       : ScreenSwitcher(
                           // Each import rebuilds the screens, so they show the merged data.
@@ -93,7 +98,15 @@ class _OfficerShellState extends State<OfficerShell> {
                               connection: widget.connection,
                               footer: source,
                               readOnly: true,
+                              payments: data.payments,
                             ),
+                            PaymentsScreen(
+                              payments: data.payments!,
+                              fees: data.fees!,
+                              students: students,
+                              officerName: widget.auth.current?.displayName ?? '',
+                            ),
+                            _OfficerSettings(fees: data.fees!, changedBy: widget.auth.current?.displayName ?? ''),
                           ],
                         ),
                 ),
@@ -121,6 +134,32 @@ class _OfficerShellState extends State<OfficerShell> {
               onPressed: _import,
               icon: const Icon(Icons.file_open_outlined),
               label: const Text('Import data file'),
+            ),
+          ],
+        ),
+      );
+}
+
+class _OfficerSettings extends StatelessWidget {
+  const _OfficerSettings({required this.fees, required this.changedBy});
+
+  final FeeBook fees;
+  final String changedBy;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        body: ListView(
+          padding: const EdgeInsets.only(bottom: 32),
+          children: [
+            const PageHeader(overline: 'Paying fees with points', title: 'Settings'),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: FeeSettings(
+                book: fees,
+                changedBy: changedBy,
+                note: 'Changes here stay on this computer. When the admin changes a fee or the peso value, '
+                    'the newer change wins at the next import.',
+              ),
             ),
           ],
         ),

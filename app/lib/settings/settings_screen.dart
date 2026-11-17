@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../auth/auth_service.dart';
+import '../data/fees.dart';
 import '../data/point_rules.dart';
 import '../data/reports.dart';
 import '../serial/serial_connection.dart';
@@ -9,12 +10,14 @@ import '../theme/app_theme.dart';
 import '../widgets/motion.dart';
 import '../widgets/page_parts.dart';
 import '../widgets/stat_card.dart';
+import 'fee_settings.dart';
 
 /// Admin settings: the points rate, with a history of changes.
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, required this.rules, required this.auth, required this.connection});
+  const SettingsScreen({super.key, required this.rules, required this.fees, required this.auth, required this.connection});
 
   final PointRules rules;
+  final FeeBook fees;
   final AuthService auth;
   final SerialConnection connection;
 
@@ -132,6 +135,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ]),
                       ),
+                  const SizedBox(height: 36),
+                  const SmallLabel('Paying fees with points'),
+                  const SizedBox(height: 10),
+                  FeeSettings(
+                    book: widget.fees,
+                    changedBy: widget.auth.current?.displayName ?? '',
+                    note: 'Fees and the peso value go to the officers with the next data file '
+                        '(Reports → Export). Officers pay the fees on their computer.',
+                  ),
                 ]),
               ),
             ],

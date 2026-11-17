@@ -2,6 +2,8 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../data/csv_export.dart';
+import '../data/fees.dart';
+import '../data/payments.dart';
 import '../data/reports.dart';
 import '../data/student.dart';
 import '../reports/transaction_table.dart';
@@ -13,10 +15,13 @@ import '../widgets/stat_card.dart';
 /// One student's full record: every card tap that processed a bottle, with
 /// date, time, weight, points and result. Filter by month and export to CSV.
 class StudentRecordScreen extends StatefulWidget {
-  const StudentRecordScreen({super.key, required this.student, required this.reports});
+  const StudentRecordScreen({super.key, required this.student, required this.reports, this.payments});
 
   final Student student;
   final Reports reports;
+
+  /// Officers only: fees this student paid with points.
+  final PaymentBook? payments;
 
   @override
   State<StudentRecordScreen> createState() => _StudentRecordScreenState();
@@ -26,6 +31,7 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
   List<(int, int)> _months = const [];
   (int, int)? _month; // null = all time
   List<DepositRecord>? _deposits; // newest first
+  bool _showPayments = false;
 
   @override
   void initState() {
@@ -135,15 +141,30 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
             const Expanded(child: Center(child: CircularProgressIndicator()))
           else ...[
             Padding(padding: const EdgeInsets.symmetric(horizontal: 26), child: _summary(deposits)),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(32, 28, 32, 10),
-              child: SmallLabel('Every tap and deposit, newest first'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(32, 24, 32, 10),
+              child: Row(children: [
+                SmallLabel(_showPayments ? 'Fees paid with points, newest first' : 'Every tap and deposit, newest first'),
+                const Spacer(),
+                if (widget.payments != null)
+                  SegmentedButton<bool>(
+                    showSelectedIcon: false,
+                    segments: const [
+                      ButtonSegment(value: false, icon: Icon(Icons.recycling, size: 18), label: Text('Deposits')),
+                      ButtonSegment(value: true, icon: Icon(Icons.point_of_sale, size: 18), label: Text('Fees paid')),
+                    ],
+                    selected: {_showPayments},
+                    onSelectionChanged: (v) => setState(() => _showPayments = v.first),
+                  ),
+              ]),
             ),
             Expanded(
-              child: TransactionTable(
-                deposits: deposits,
-                emptyMessage: _month == null ? '${s.name} has no deposits yet.' : 'No deposits in $_periodLabel.',
-              ),
+              child: _showPayments && widget.payments != null
+                  ? _paymentsList(widget.payments!.forStudent(s.id!))
+                  : TransactionTable(
+                      deposits: deposits,
+                      emptyMessage: _month == null ? '${s.name} has no deposits yet.' : 'No deposits in $_periodLabel.',
+                    ),
             ),
           ],
         ],
@@ -163,7 +184,11 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
         highlight: true,
         label: 'Points · $_periodLabel',
         value: '$points',
-        detail: _month == null ? 'Balance: ${widget.student.points} points' : 'earned this month',
+        detail: _month != null
+            ? 'earned this month'
+            : widget.payments == null
+                ? 'earned in total'
+                : '${widget.student.spent} used for fees · ${widget.student.points} left',
       ),
       StatCard(
         icon: Icons.recycling,
@@ -187,5 +212,42 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
         detail: last == null ? 'No deposits' : transactionTime(last),
       ),
     ]);
+  }
+
+  Widget _paymentsList(List<Payment> payments) {
+    if (payments.isEmpty) {
+      return EmptyState(icon: Icons.point_of_sale, message: '${widget.student.name} has not paid any fees with points.');
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(32, 0, 32, 24),
+      itemCount: payments.length,
+      itemBuilder: (context, i) {
+        final p = payments[i];
+        return RowCard(
+          child: Row(children: [
+            Expanded(
+              flex: 3,
+              child: Text('${transactionDate(p.paidAt)} · ${transactionTime(p.paidAt)}',
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+            ),
+            Expanded(flex: 3, child: Text(p.feeName)),
+            Expanded(flex: 2, child: Text(pesos(p.amount), style: const TextStyle(fontWeight: FontWeight.w700))),
+            Expanded(
+              flex: 2,
+              child: Text('−${p.points} pts',
+                  style: TextStyle(fontWeight: FontWeight.w700, color: p.voided ? EcoColors.muted : EcoColors.coral)),
+            ),
+            Expanded(
+              flex: 3,
+              child: Text(
+                p.voided ? 'Voided: ${p.voidReason ?? ''}' : 'Paid · ${p.processedBy}',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: p.voided ? EcoColors.muted : EcoColors.ink),
+              ),
+            ),
+          ]),
+        );
+      },
+    );
   }
 }

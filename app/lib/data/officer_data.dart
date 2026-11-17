@@ -4,6 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+import 'app_database.dart';
+import 'fees.dart';
+import 'payments.dart';
 import 'reports.dart';
 import 'student_repository.dart';
 
@@ -109,6 +112,8 @@ class OfficerData extends ChangeNotifier {
   DateTime? _exportedAt;
   StudentRepository? _students;
   Reports? _reports;
+  FeeBook? _fees;
+  PaymentBook? _payments;
   int _revision = 0;
 
   bool get hasData => _db != null;
@@ -117,6 +122,12 @@ class OfficerData extends ChangeNotifier {
   DateTime? get exportedAt => _exportedAt;
   StudentRepository? get students => _students;
   Reports? get reports => _reports;
+
+  /// Fees and the peso rate (the officer can change them too).
+  FeeBook? get fees => _fees;
+
+  /// Fees paid with points. They exist only here, so imports never touch them.
+  PaymentBook? get payments => _payments;
 
   /// Changes after every import, so screens can reload.
   int get revision => _revision;
@@ -127,13 +138,21 @@ class OfficerData extends ChangeNotifier {
     final exportedAt = await OfficerDataFile.exportedAt(_path);
     if (exportedAt == null) return;
 
-    final db = await databaseFactoryFfi.openDatabase(_path, options: OpenDatabaseOptions(readOnly: true));
+    // Writable: officers record payments and manage fees here.
+    final db = await databaseFactoryFfi.openDatabase(_path);
+    await AppDatabase.createFeeTables(db); // data copied from an export older than payments
     final students = StudentRepository(db);
     await students.load();
+    final fees = FeeBook(db);
+    await fees.load();
+    final payments = PaymentBook(db, students);
+    await payments.load();
     _db = db;
     _exportedAt = exportedAt;
     _students = students;
     _reports = Reports(db);
+    _fees = fees;
+    _payments = payments;
     _revision++;
     notifyListeners();
   }
@@ -298,7 +317,12 @@ class OfficerData extends ChangeNotifier {
       SELECT changed_at, grams_per_point, changed_by FROM src.point_rate_changes r
       WHERE NOT EXISTS (SELECT 1 FROM point_rate_changes l
                         WHERE l.changed_at = r.changed_at AND l.grams_per_point = r.grams_per_point)''');
-    if (newer) await txn.execute('INSERT OR REPLACE INTO settings SELECT * FROM src.settings');
+    if (newer) {
+      // The points rate is the machine's; the peso rate is merged below by its own change time.
+      await txn.execute('''INSERT OR REPLACE INTO settings SELECT * FROM src.settings
+                           WHERE key NOT IN ('pesos_per_point', 'pesos_per_point_changed_at')''');
+    }
+    await _mergeFees(txn);
     await txn.insert('export_info', {'exported_at': sourceExported.toIso8601String()});
 
     return ImportResult(
@@ -309,13 +333,60 @@ class OfficerData extends ChangeNotifier {
     );
   }
 
+  /// Fees and the peso rate are managed on both computers: the newest change of
+  /// each wins. Payments are never in the admin's file, so they are untouched.
+  Future<void> _mergeFees(Transaction txn) async {
+    await AppDatabase.createFeeTables(txn);
+    final sourceTables = (await txn.rawQuery(
+            "SELECT name FROM src.sqlite_master WHERE name IN ('fees', 'peso_rate_changes', 'settings')"))
+        .map((r) => r['name'])
+        .toSet();
+
+    if (sourceTables.contains('fees')) {
+      for (final f in await txn.rawQuery('SELECT * FROM src.fees')) {
+        final local = await txn.query('fees', where: 'sync_id = ?', whereArgs: [f['sync_id']]);
+        final row = {'name': f['name'], 'amount': f['amount'], 'active': f['active'], 'updated_at': f['updated_at']};
+        if (local.isEmpty) {
+          await txn.insert('fees', {...row, 'sync_id': f['sync_id']});
+        } else if ((f['updated_at'] as String).compareTo(local.first['updated_at'] as String) > 0) {
+          await txn.update('fees', row, where: 'sync_id = ?', whereArgs: [f['sync_id']]);
+        }
+      }
+    }
+    if (sourceTables.contains('peso_rate_changes')) {
+      await txn.execute('''
+        INSERT INTO peso_rate_changes (changed_at, pesos_per_point, changed_by)
+        SELECT changed_at, pesos_per_point, changed_by FROM src.peso_rate_changes r
+        WHERE NOT EXISTS (SELECT 1 FROM peso_rate_changes l
+                          WHERE l.changed_at = r.changed_at AND l.pesos_per_point = r.pesos_per_point)''');
+    }
+    if (sourceTables.contains('settings')) {
+      Future<String> value(String schema, String key) async {
+        final rows = await txn.rawQuery('SELECT value FROM $schema.settings WHERE key = ?', [key]);
+        return rows.isEmpty ? '' : rows.first['value'] as String;
+      }
+
+      final sourceChanged = await value('src', 'pesos_per_point_changed_at');
+      if (sourceChanged.compareTo(await value('main', 'pesos_per_point_changed_at')) > 0) {
+        final rate = await value('src', 'pesos_per_point');
+        for (final (key, v) in [('pesos_per_point', rate), ('pesos_per_point_changed_at', sourceChanged)]) {
+          await txn.insert('settings', {'key': key, 'value': v}, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+    }
+  }
+
   Future<void> _close() async {
     _students?.dispose();
+    _fees?.dispose();
+    _payments?.dispose();
     await _db?.close();
     _db = null;
     _exportedAt = null;
     _students = null;
     _reports = null;
+    _fees = null;
+    _payments = null;
   }
 
   @override

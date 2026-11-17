@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/payments.dart';
 import '../data/reports.dart';
 import '../data/student.dart';
 import '../data/student_repository.dart';
@@ -22,6 +23,7 @@ class StudentsScreen extends StatefulWidget {
     required this.connection,
     required this.footer,
     this.readOnly = false,
+    this.payments,
   });
 
   final StudentRepository students;
@@ -33,6 +35,9 @@ class StudentsScreen extends StatefulWidget {
 
   /// Officers can look but not add, edit or delete.
   final bool readOnly;
+
+  /// Officers: fees paid with points, so balances show what's left and the record lists payments.
+  final PaymentBook? payments;
 
   @override
   State<StudentsScreen> createState() => _StudentsScreenState();
@@ -157,12 +162,13 @@ class _StudentsScreenState extends State<StudentsScreen> {
               if (selected != null)
                 _StudentDetail(
                   // A new key when the student or their points change reloads the summary.
-                  key: ValueKey('${selected.id}-${selected.points}'),
+                  key: ValueKey('${selected.id}-${selected.earned}-${selected.spent}'),
                   student: selected,
                   reports: widget.reports,
                   onEdit: widget.readOnly ? null : () => _edit(selected),
                   onDelete: widget.readOnly ? null : () => _delete(selected),
                   onOpenRecord: () => _openRecord(selected),
+                  withPayments: widget.payments != null,
                 ),
             ],
           );
@@ -173,7 +179,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
   Future<void> _openRecord(Student student) => Navigator.of(context).push(PageRouteBuilder<void>(
         transitionDuration: const Duration(milliseconds: 280),
-        pageBuilder: (_, _, _) => StudentRecordScreen(student: student, reports: widget.reports),
+        pageBuilder: (_, _, _) =>
+            StudentRecordScreen(student: student, reports: widget.reports, payments: widget.payments),
         transitionsBuilder: (_, animation, _, child) => FadeTransition(
           opacity: animation,
           child: SlideTransition(
@@ -230,9 +237,13 @@ class _StudentDetail extends StatefulWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onOpenRecord,
+    required this.withPayments,
   });
 
   final Student student;
+
+  /// Officers' view: show the balance after fees.
+  final bool withPayments;
   final Reports reports;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -273,7 +284,13 @@ class _StudentDetailState extends State<_StudentDetail> {
                   IconButton(tooltip: 'Delete', onPressed: widget.onDelete, icon: const Icon(Icons.delete_outline, size: 20)),
               ]),
               const SizedBox(height: 4),
-              Text('${s.points} points', style: const TextStyle(fontSize: 16, color: EcoColors.emerald, fontWeight: FontWeight.w700)),
+              Text(
+                widget.withPayments ? '${s.points} points left' : '${s.earned} points earned',
+                style: const TextStyle(fontSize: 16, color: EcoColors.emerald, fontWeight: FontWeight.w700),
+              ),
+              if (widget.withPayments)
+                Text('${s.earned} earned · ${s.spent} used for fees',
+                    style: const TextStyle(fontSize: 13, color: EcoColors.muted)),
               const SizedBox(height: 18),
               Row(children: [
                 Expanded(

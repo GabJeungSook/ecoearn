@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'payments.dart';
 import 'reports.dart';
 
 /// Builds CSV text. Fields with commas, quotes or line breaks are quoted.
@@ -47,5 +48,29 @@ List<List<Object?>> depositsCsv(List<DepositRecord> deposits) => [
           d.rejectReason == null ? 'accepted' : 'rejected',
           d.rejectReason ?? '',
           d.source,
+        ],
+    ];
+
+/// One row per fee paid with points (voided ones included, marked).
+List<List<Object?>> paymentsCsv(List<Payment> payments) => [
+      ['Payment ID', 'Date', 'Time', 'Student ID', 'Name', 'Grade & section', 'Fee', 'Amount (PHP)',
+        'Points used', 'Pesos per point', 'Status', 'Processed by', 'Voided at', 'Void reason', 'Voided by'],
+      for (final p in payments)
+        [
+          p.id,
+          '${p.paidAt.year}-${_two(p.paidAt.month)}-${_two(p.paidAt.day)}',
+          '${_two(p.paidAt.hour)}:${_two(p.paidAt.minute)}:${_two(p.paidAt.second)}',
+          p.studentNo,
+          p.studentName,
+          p.gradeSection,
+          p.feeName,
+          p.amount.toStringAsFixed(2),
+          p.points,
+          p.pesosPerPoint,
+          p.voided ? 'voided' : 'paid',
+          p.processedBy,
+          p.voidedAt?.toIso8601String() ?? '',
+          p.voidReason ?? '',
+          p.voidedBy ?? '',
         ],
     ];

@@ -20,9 +20,10 @@ class StudentRepository extends ChangeNotifier {
 
   Future<void> load() async {
     final rows = await _db.rawQuery('''
-      SELECT s.*, COALESCE(SUM(d.points), 0) AS points
-      FROM students s LEFT JOIN deposits d ON d.student_id = s.id
-      GROUP BY s.id
+      SELECT s.*,
+        COALESCE((SELECT SUM(d.points) FROM deposits d WHERE d.student_id = s.id), 0) AS earned,
+        COALESCE((SELECT SUM(p.points) FROM payments p WHERE p.student_id = s.id AND p.voided_at IS NULL), 0) AS spent
+      FROM students s
       ORDER BY s.name COLLATE NOCASE''');
     _students = rows.map(Student.fromRow).toList();
     _byUid = {
