@@ -326,6 +326,148 @@ tr:last-child td { border-bottom: 0; }
     <figcaption>The electronics compartment cut open from the side. The card reader faces out through the window. Everything else sits on one small board right behind it.</figcaption>
   </figure>
 
+  <h3>Connecting the scale at the bottom</h3>
+  <p>The scale sits near the floor and the breadboard sits near the top, about a meter apart. The trick is <b>where the long wires go</b>:</p>
+  <ul>
+    <li><b>Load cell → HX711: keep these short.</b> The load cell's 4 colored wires carry a tiny signal that picks up noise easily. Never make them longer. So the HX711 goes down at the bottom, next to the load cell.</li>
+    <li><b>HX711 → breadboard: these can be long.</b> These 4 wires carry simple on/off signals, so 1 meter is no problem. This is the cable that runs up the machine.</li>
+  </ul>
+
+  <figure>
+    <div class="draw">
+    <svg viewBox="0 0 760 620" role="img" aria-labelledby="run-t">
+      <title id="run-t">Side view: a 4-wire cable runs from the breadboard at the top down the back corner of the frame to the HX711, which sits next to the load cell on the scale shelf</title>
+      <!-- frame outline -->
+      <rect x="120" y="20" width="420" height="580" rx="6" fill="none" stroke="var(--steel)" stroke-width="3" stroke-dasharray="10 6"/>
+      <text x="130" y="14" font-size="11" fill="var(--muted)">machine, seen from the side</text>
+      <line x1="40" y1="600" x2="720" y2="600" stroke="var(--muted)" stroke-width="2"/>
+      <text x="720" y="616" text-anchor="end" font-size="11" fill="var(--muted)">floor</text>
+      <!-- back post -->
+      <rect x="512" y="20" width="18" height="580" fill="url(#hatch2)" stroke="var(--steel)" stroke-width="2"/>
+      <text x="521" y="300" text-anchor="middle" font-size="11" fill="var(--muted)" transform="rotate(90 521 300)">back corner post</text>
+      <!-- top compartment -->
+      <rect x="130" y="40" width="370" height="130" rx="6" fill="var(--paper)" stroke="var(--c-rfid)" stroke-width="2"/>
+      <text x="145" y="62" font-size="12" font-weight="700" fill="var(--c-rfid)">ELECTRONICS COMPARTMENT (top)</text>
+      <rect x="150" y="128" width="300" height="10" fill="var(--wood)"/>
+      <rect x="170" y="108" width="150" height="20" rx="3" fill="var(--paper)" stroke="var(--steel)" stroke-width="2"/>
+      <text x="245" y="122" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">breadboard</text>
+      <rect x="340" y="112" width="90" height="16" rx="3" fill="var(--ink)"/>
+      <text x="385" y="124" text-anchor="middle" font-size="10" font-weight="700" fill="var(--paper)">ESP32</text>
+      <!-- cable from breadboard to post -->
+      <path d="M300 108 C 300 88, 460 84, 490 100 C 505 110, 505 140, 505 170" fill="none" stroke="var(--c-scale)" stroke-width="5"/>
+      <!-- slack loop top -->
+      <text x="400" y="84" font-size="10" fill="var(--muted)">a little slack</text>
+      <!-- hole in shelf -->
+      <ellipse cx="505" cy="170" rx="10" ry="4" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.5"/>
+      <!-- cable down along post -->
+      <line x1="505" y1="174" x2="505" y2="470" stroke="var(--c-scale)" stroke-width="5"/>
+      <!-- zip ties -->
+      <g stroke="var(--ink)" stroke-width="3">
+        <line x1="496" y1="215" x2="532" y2="215"/><line x1="496" y1="270" x2="532" y2="270"/><line x1="496" y1="325" x2="532" y2="325"/><line x1="496" y1="380" x2="532" y2="380"/><line x1="496" y1="435" x2="532" y2="435"/>
+      </g>
+      <text x="545" y="219" font-size="11" fill="var(--ink)" font-weight="700">zip tie</text>
+      <text x="545" y="234" font-size="10" fill="var(--muted)">every 15 cm</text>
+      <text x="545" y="330" font-size="12" fill="var(--c-scale)" font-weight="700">4-wire cable</text>
+      <text x="545" y="346" font-size="11" fill="var(--muted)">about 1 m, e.g. old LAN cable</text>
+      <text x="545" y="362" font-size="11" fill="var(--muted)">GND, DT, SCK, VCC</text>
+      <!-- keep away from moving parts note -->
+      <rect x="200" y="210" width="230" height="200" rx="6" fill="var(--steel-soft)" stroke="var(--steel)" stroke-width="1.5"/>
+      <text x="315" y="300" text-anchor="middle" font-size="12" font-weight="700" fill="var(--muted)">chamber, trapdoor,</text>
+      <text x="315" y="316" text-anchor="middle" font-size="12" font-weight="700" fill="var(--muted)">moving parts</text>
+      <text x="315" y="336" text-anchor="middle" font-size="11" fill="var(--danger)">cable stays away from here</text>
+      <text x="315" y="351" text-anchor="middle" font-size="11" fill="var(--danger)">and from the drain hose</text>
+      <!-- scale shelf -->
+      <rect x="130" y="500" width="400" height="10" fill="var(--steel)"/>
+      <text x="140" y="528" font-size="11" fill="var(--muted)">scale shelf (bottom)</text>
+      <!-- load cell -->
+      <rect x="170" y="470" width="44" height="30" fill="var(--wood)" stroke="var(--ink)" stroke-width="1.5"/>
+      <rect x="170" y="456" width="190" height="14" rx="2" fill="var(--paper)" stroke="var(--c-scale)" stroke-width="2.5"/>
+      <rect x="320" y="446" width="30" height="10" fill="var(--wood)" stroke="var(--ink)" stroke-width="1"/>
+      <rect x="270" y="438" width="130" height="8" rx="2" fill="var(--c-scale)"/>
+      <text x="335" y="430" text-anchor="middle" font-size="11" fill="var(--ink)" font-weight="700">tray</text>
+      <text x="200" y="448" font-size="10" fill="var(--c-scale)" font-weight="700">load cell</text>
+      <!-- load cell wires to HX711 (short) -->
+      <g fill="none" stroke-width="2">
+        <path d="M172 463 C 150 470, 150 490, 160 492 L 420 492" stroke="#e0443a"/>
+        <path d="M172 465 C 154 474, 154 488, 162 494 L 420 494" stroke="var(--ink)"/>
+        <path d="M172 467 C 158 478, 158 486, 164 496 L 420 496" stroke="var(--muted)"/>
+        <path d="M172 469 C 162 482, 162 486, 166 498 L 420 498" stroke="#2fa84f"/>
+      </g>
+      <text x="230" y="488" font-size="10" fill="var(--ink)" font-weight="700" stroke="var(--paper)" stroke-width="4" paint-order="stroke">short, loose, not pulling</text>
+      <!-- HX711 -->
+      <rect x="420" y="476" width="64" height="24" rx="3" fill="var(--c-scale)"/>
+      <text x="452" y="492" text-anchor="middle" font-size="11" fill="var(--paper)" font-weight="700">HX711</text>
+      <text x="452" y="545" text-anchor="middle" font-size="11" fill="var(--c-scale)" font-weight="700">screwed to the shelf,</text>
+      <text x="452" y="560" text-anchor="middle" font-size="11" fill="var(--c-scale)" font-weight="700">next to the load cell</text>
+      <!-- cable to HX711 -->
+      <path d="M505 470 C 505 482, 495 488, 484 488" fill="none" stroke="var(--c-scale)" stroke-width="5"/>
+      <!-- height dim -->
+      <g stroke="var(--ink)" stroke-width="1.5" font-size="12" fill="var(--ink)">
+        <line x1="80" y1="120" x2="80" y2="488"/><line x1="73" y1="120" x2="87" y2="120"/><line x1="73" y1="488" x2="87" y2="488"/>
+        <text x="66" y="304" stroke="none" text-anchor="middle" transform="rotate(-90 66 304)" font-weight="700">about 75–80 cm between them</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>The 4-wire cable goes up the back corner post, tied down, away from the moving parts and the drain. The load cell's own wires stay short at the bottom.</figcaption>
+  </figure>
+
+  <div class="two">
+    <div class="stack">
+      <h3>Which wire is which</h3>
+      <p>A LAN cable has 8 thin wires in 4 colored pairs. Use 4 of them and write this down:</p>
+      <div class="tbl">
+      <table style="min-width:0">
+        <thead><tr><th>HX711 pin</th><th>LAN wire</th><th>Breadboard / ESP32</th></tr></thead>
+        <tbody>
+          <tr><td class="pin">VCC</td><td>orange</td><td>3.3 V rail</td></tr>
+          <tr><td class="pin">GND</td><td>white-orange</td><td>GND rail</td></tr>
+          <tr><td class="pin">DT</td><td>blue</td><td><span class="pin">D16</span> (RX2)</td></tr>
+          <tr><td class="pin">SCK</td><td>white-blue</td><td><span class="pin">D17</span> (TX2)</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>Cut the other 4 wires short and tape them, so they can't touch anything.</p>
+    </div>
+    <figure>
+      <div class="draw">
+      <svg class="small" viewBox="0 0 380 230" role="img" aria-labelledby="jt-t">
+        <title id="jt-t">How to make the cable ends: a jumper wire cut in half and soldered to each LAN wire, covered with heat-shrink</title>
+        <text x="190" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">Making each end</text>
+        <!-- female end -->
+        <rect x="20" y="52" width="34" height="14" rx="2" fill="var(--ink)"/>
+        <line x1="54" y1="59" x2="140" y2="59" stroke="#f08a24" stroke-width="4"/>
+        <rect x="134" y="50" width="56" height="18" rx="6" fill="var(--muted)" opacity=".45"/>
+        <line x1="184" y1="59" x2="300" y2="59" stroke="#f08a24" stroke-width="3"/>
+        <text x="37" y="86" text-anchor="middle" font-size="10" fill="var(--muted)">female end</text>
+        <text x="37" y="99" text-anchor="middle" font-size="10" fill="var(--muted)">(onto HX711 pin)</text>
+        <text x="162" y="86" text-anchor="middle" font-size="10" fill="var(--ink)" font-weight="700">solder + heat-shrink</text>
+        <text x="250" y="50" text-anchor="middle" font-size="10" fill="var(--muted)">LAN wire</text>
+        <line x1="300" y1="59" x2="360" y2="59" stroke="#f08a24" stroke-width="3" stroke-dasharray="4 4"/>
+        <text x="330" y="78" text-anchor="middle" font-size="10" fill="var(--muted)">1 m</text>
+        <!-- male end -->
+        <line x1="20" y1="150" x2="140" y2="150" stroke="#f08a24" stroke-width="3" stroke-dasharray="4 4"/>
+        <line x1="60" y1="150" x2="196" y2="150" stroke="#f08a24" stroke-width="3"/>
+        <rect x="190" y="141" width="56" height="18" rx="6" fill="var(--muted)" opacity=".45"/>
+        <line x1="240" y1="150" x2="320" y2="150" stroke="#f08a24" stroke-width="4"/>
+        <rect x="320" y="146" width="28" height="8" rx="1" fill="var(--steel)"/>
+        <text x="334" y="176" text-anchor="middle" font-size="10" fill="var(--muted)">male end</text>
+        <text x="334" y="189" text-anchor="middle" font-size="10" fill="var(--muted)">(into breadboard)</text>
+        <text x="218" y="176" text-anchor="middle" font-size="10" fill="var(--ink)" font-weight="700">solder + heat-shrink</text>
+        <text x="190" y="218" text-anchor="middle" font-size="11" fill="var(--muted)">Cut a jumper in half, strip 1 cm, twist, solder, cover.</text>
+      </svg>
+      </div>
+      <figcaption>No soldering iron today? Twist the wires tightly and wrap each joint with electrical tape. Solder it later.</figcaption>
+    </figure>
+  </div>
+
+  <ol class="steps">
+    <li><div><b>Screw the HX711 down next to the load cell</b><p>On the scale shelf, not on the tray. The load cell's 4 colored wires should reach it with a little slack, without pulling on the load cell. A pulled wire changes the weight.</p></div></li>
+    <li><div><b>Make the 4-wire cable</b><p>Cut about 1.2 m of LAN cable. On the HX711 end, attach female jumper ends. On the top end, attach male jumper ends. Mark each end with tape: VCC, GND, DT, SCK.</p></div></li>
+    <li><div><b>Run the cable up</b><p>From the HX711, take it straight to the back corner post. Go up the post and zip-tie it every 15 cm. Pass it through a hole into the electronics compartment. Leave a small loop of slack at both ends.</p></div></li>
+    <li><div><b>Plug it in</b><p>Pull the old HX711 jumpers out of the breadboard and plug the cable's ends into the same holes: VCC to the 3.3 V rail, GND to the GND rail, DT to the D16 wire, SCK to the D17 wire.</p></div></li>
+    <li><div><b>Test it</b><p>Open the app, click the scale button on the Live screen and watch the weight. Put coins on the tray 3 times.</p><p class="check">The weight is the same each time (±1 g). If the app says "scale not answering", DT and SCK are probably swapped or loose.</p></div></li>
+  </ol>
+
   <h3>Steps for today</h3>
   <ol class="steps">
     <li><div><b>Take the card reader off the breadboard</b><p>It is plugged straight into the breadboard now, but it has to sit on the front panel. First take a clear photo. Write down which breadboard row each of its pins is in. Then pull it out and connect its pins to the same rows with 7 male-to-female jumpers. IRQ stays unused.</p><p class="check">Tap a card in the app's Live screen. It should still show the card number.</p></div></li>
