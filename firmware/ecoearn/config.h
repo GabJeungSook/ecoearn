@@ -57,3 +57,16 @@
 #define RFID_RST_PIN   22
 #define HX711_DT_PIN   16
 #define HX711_SCK_PIN  17
+
+// Mechanism pins, as in docs/machine-build-guide.html (used once FAKE_MECHANISM is 0
+// and the parts are wired; RFID and scale pins above stay where they are).
+#define LCD_SDA_PIN        21   // 20x4 I2C LCD
+#define LCD_SCL_PIN         4   // (not 22: the RFID reset uses 22)
+#define ACT_EXTEND_PIN     25   // BTS7960 RPWM: actuator pushes down (crush)
+#define ACT_RETRACT_PIN    26   // BTS7960 LPWM: actuator pulls back up
+#define TRAPDOOR_SERVO_PIN 32   // MG996R under the chamber
+#define SWEEPER_SERVO_PIN  33   // MG996R arm that pushes the bottle off the tray into the bin
+#define IR_SENSOR_PIN      13   // E18-D80NK black wire, LOW = bottle in the chamber
+#define LID_SWITCH_PIN     14   // limit switch to GND, LOW = lid closed
+#define BIN_TRIG_PIN       27   // HC-SR04 trigger
+#define BIN_ECHO_PIN       34   // HC-SR04 echo through the 1k/2k divider (5 V -> 3.3 V)

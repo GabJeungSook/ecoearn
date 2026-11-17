@@ -1,0 +1,823 @@
+<title>EcoEarn Machine Build Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one readable column like a workshop manual; wide drawings break out to a wider frame. */
+:root {
+  --bg: #f3f6f2;
+  --paper: #ffffff;
+  --ink: #17231c;
+  --muted: #5a6b61;
+  --line: #d5ded7;
+  --green: #128a4a;
+  --green-soft: #e1f3e8;
+  --steel: #6f7d86;
+  --steel-soft: #e6eaed;
+  --warn: #b86e00;
+  --warn-soft: #fff2d9;
+  --danger: #c2372b;
+  --danger-soft: #fde7e4;
+  --water: #2f7fc1;
+  --bottle: #8fc9ee;
+  --wood: #c9a46a;
+  --c-rfid: #7b4bd1;
+  --c-scale: #128a4a;
+  --c-lcd: #2f7fc1;
+  --c-act: #c2372b;
+  --c-servo: #d07a00;
+  --c-sense: #0f8c8c;
+  --c-power: #b8323f;
+  --display: "Archivo", "Arial Narrow", Arial, sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101713; --paper: #17201b; --ink: #e5eee8; --muted: #9db0a5; --line: #2c3a32;
+    --green: #3ccf7f; --green-soft: #173a27; --steel: #9aa8b1; --steel-soft: #26313a;
+    --warn: #f0aa3c; --warn-soft: #3a2c12; --danger: #ff7a6e; --danger-soft: #3d1c19;
+    --water: #6db4f0; --bottle: #3f7ea6; --wood: #a8844c;
+    --c-rfid: #b28cff; --c-scale: #3ccf7f; --c-lcd: #6db4f0; --c-act: #ff7a6e;
+    --c-servo: #f0aa3c; --c-sense: #4fd1d1; --c-power: #ff8a96;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101713; --paper: #17201b; --ink: #e5eee8; --muted: #9db0a5; --line: #2c3a32;
+  --green: #3ccf7f; --green-soft: #173a27; --steel: #9aa8b1; --steel-soft: #26313a;
+  --warn: #f0aa3c; --warn-soft: #3a2c12; --danger: #ff7a6e; --danger-soft: #3d1c19;
+  --water: #6db4f0; --bottle: #3f7ea6; --wood: #a8844c;
+  --c-rfid: #b28cff; --c-scale: #3ccf7f; --c-lcd: #6db4f0; --c-act: #ff7a6e;
+  --c-servo: #f0aa3c; --c-sense: #4fd1d1; --c-power: #ff8a96;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 64px;
+}
+.wrap { max-width: 860px; margin: 0 auto; display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(32px, 6vw, 52px); font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: clamp(24px, 4vw, 32px); font-weight: 800; }
+h3 { font-size: 20px; font-weight: 600; }
+p { margin: 0; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--green); font-weight: 700; }
+.lead { font-size: 19px; color: var(--muted); max-width: 64ch; }
+.stack { display: grid; gap: 14px; }
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 24px; display: grid; gap: 14px; min-width: 0; }
+.section { display: grid; gap: 16px; padding-top: 12px; border-top: 2px solid var(--line); }
+.section > .eyebrow { margin-bottom: -8px; }
+figure { margin: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 10px; min-width: 0; }
+figcaption { font-size: 14px; color: var(--muted); }
+.draw { overflow-x: auto; }
+.draw svg { display: block; width: 100%; height: auto; min-width: 520px; font-family: var(--body); }
+.draw svg.small { min-width: 360px; }
+.badge { display: inline-block; font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: var(--steel-soft); color: var(--ink); white-space: nowrap; }
+.pin { font-family: var(--mono); font-weight: 700; }
+code { font-family: var(--mono); font-size: 0.9em; background: var(--steel-soft); padding: 1px 5px; border-radius: 4px; }
+ul, ol { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+.note, .warn, .danger { border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; }
+.note { background: var(--green-soft); }
+.warn { background: var(--warn-soft); }
+.danger { background: var(--danger-soft); }
+.note b:first-child, .warn b:first-child, .danger b:first-child { font-family: var(--display); }
+.warn b:first-child { color: var(--warn); }
+.danger b:first-child { color: var(--danger); }
+.note b:first-child { color: var(--green); }
+
+/* process strip */
+.flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.flow .step { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 6px; align-content: start; }
+.flow .n { font-family: var(--display); font-weight: 800; font-size: 28px; color: var(--green); line-height: 1; }
+.flow .t { font-weight: 700; }
+.flow .s { font-size: 14px; color: var(--muted); }
+
+/* tables */
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+table { border-collapse: collapse; width: 100%; font-size: 15px; min-width: 560px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--display); font-weight: 600; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); background: var(--steel-soft); }
+tr:last-child td { border-bottom: 0; }
+.have { color: var(--green); font-weight: 700; }
+.buy { color: var(--warn); font-weight: 700; }
+.group td { background: var(--steel-soft); font-family: var(--display); font-weight: 600; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+
+/* build steps */
+.phase { display: grid; gap: 14px; }
+.steps { list-style: none; padding: 0; counter-reset: s; display: grid; gap: 12px; }
+.steps > li { counter-increment: s; display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: start; }
+.steps > li::before { content: counter(s); font-family: var(--display); font-weight: 800; width: 32px; height: 32px; border-radius: 50%; background: var(--green-soft); color: var(--green); display: grid; place-items: center; font-size: 15px; }
+.steps > li > div { display: grid; gap: 6px; min-width: 0; }
+.check { font-size: 15px; color: var(--green); font-weight: 700; }
+.check::before { content: "✓ "; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.toc { display: flex; flex-wrap: wrap; gap: 8px; }
+.toc a { font-size: 14px; text-decoration: none; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+.toc a:hover, .toc a:focus-visible { border-color: var(--green); color: var(--green); outline: none; }
+.legend { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 6px 16px; font-size: 15px; }
+.legend li { display: flex; gap: 8px; align-items: baseline; }
+.legend .k { font-family: var(--display); font-weight: 800; color: var(--paper); background: var(--green); border-radius: 50%; min-width: 22px; height: 22px; display: inline-grid; place-items: center; font-size: 12px; }
+.ok-list li::marker { color: var(--green); }
+</style>
+
+<div class="wrap">
+
+<header class="stack">
+  <span class="eyebrow">EcoEarn · plastic bottle machine</span>
+  <h1>How to build the EcoEarn machine</h1>
+  <p class="lead">A step-by-step guide for the group. It shows what each part does, where it goes, how big to make it, and how to wire it to the ESP32. Read the whole thing once before you buy or cut anything.</p>
+  <div class="note">
+    <b>What already works</b>
+    <p>The card reader (RFID), the scale (load cell + HX711), the ESP32 program and the EcoEarn app are done and tested. You are building the body of the machine and the moving parts. When you finish each part, tell the developer so the program can be switched from "pretend" to "real" for that part.</p>
+  </div>
+  <nav class="toc" aria-label="Sections">
+    <a href="#how">1. How it works</a><a href="#parts">2. Parts list</a><a href="#safety">3. Safety</a>
+    <a href="#body">4. Body and chamber</a><a href="#crusher">5. Crusher</a><a href="#trapdoor">6. Trapdoor and drain</a>
+    <a href="#scale">7. Scale and sweeper</a><a href="#bin">8. Bin</a><a href="#front">9. Front panel</a>
+    <a href="#power">10. Power</a><a href="#wiring">11. Wiring</a><a href="#test">12. Testing</a><a href="#send">13. Tell the developer</a>
+  </nav>
+</header>
+
+<!-- ============ 1. HOW IT WORKS ============ -->
+<section class="section" id="how">
+  <span class="eyebrow">Section 1</span>
+  <h2>How the machine works</h2>
+  <p>One bottle at a time goes through these steps. The ESP32 does them in this order and the screen shows each one.</p>
+  <div class="flow">
+    <div class="step"><span class="n">1</span><span class="t">Tap card</span><span class="s">The student taps their ID card on the reader. The scale zeroes itself.</span></div>
+    <div class="step"><span class="n">2</span><span class="t">Put bottle in</span><span class="s">Bottle goes into the chamber. The IR sensor sees it. The lid switch confirms the lid is closed.</span></div>
+    <div class="step"><span class="n">3</span><span class="t">Crush</span><span class="s">The actuator pushes the plate down. Spikes pierce the bottle and the plate flattens it.</span></div>
+    <div class="step"><span class="n">4</span><span class="t">Drain</span><span class="s">The plate goes back up. For 5 seconds, leftover liquid runs out of the drain hole.</span></div>
+    <div class="step"><span class="n">5</span><span class="t">Drop</span><span class="s">The trapdoor servo opens. The flat bottle falls down the chute onto the scale tray.</span></div>
+    <div class="step"><span class="n">6</span><span class="t">Weigh</span><span class="s">The scale waits for a steady reading and computes points (default 1 point per 10 g).</span></div>
+    <div class="step"><span class="n">7</span><span class="t">Into the bin</span><span class="s">The sweeper servo pushes the bottle off the tray into the storage bin.</span></div>
+    <div class="step"><span class="n">8</span><span class="t">Check bin</span><span class="s">The ultrasonic sensor measures how full the bin is. At 90% the machine refuses bottles.</span></div>
+  </div>
+
+  <figure>
+    <div class="draw">
+    <svg viewBox="0 0 640 800" role="img" aria-labelledby="cut-t">
+      <title id="cut-t">Side cutaway of the EcoEarn machine showing all parts from the actuator at the top to the bin at the bottom</title>
+      <defs>
+        <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="8" stroke="var(--steel)" stroke-width="2" opacity=".35"/>
+        </pattern>
+        <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--danger)"/></marker>
+        <marker id="arrw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--water)"/></marker>
+      </defs>
+      <!-- frame -->
+      <rect x="60" y="20" width="400" height="760" fill="none" stroke="var(--steel)" stroke-width="10" rx="4"/>
+      <!-- top crossbar -->
+      <rect x="60" y="20" width="400" height="30" fill="url(#hatch)" stroke="var(--steel)" stroke-width="2"/>
+      <!-- electronics box -->
+      <rect x="76" y="66" width="104" height="150" rx="6" fill="var(--steel-soft)" stroke="var(--steel)" stroke-width="2"/>
+      <text x="128" y="96" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">ELECTRONICS</text>
+      <text x="128" y="112" text-anchor="middle" font-size="11" fill="var(--muted)">ESP32, drivers,</text>
+      <text x="128" y="126" text-anchor="middle" font-size="11" fill="var(--muted)">buck converters</text>
+      <text x="128" y="140" text-anchor="middle" font-size="11" fill="var(--muted)">(dry zone)</text>
+      <rect x="92" y="156" width="72" height="44" rx="3" fill="var(--paper)" stroke="var(--c-lcd)" stroke-width="2"/>
+      <text x="128" y="182" text-anchor="middle" font-size="11" fill="var(--c-lcd)" font-weight="700">LCD + RFID</text>
+      <!-- actuator -->
+      <rect x="250" y="50" width="20" height="14" fill="var(--steel)"/>
+      <rect x="236" y="64" width="48" height="190" rx="8" fill="var(--steel-soft)" stroke="var(--c-act)" stroke-width="2.5"/>
+      <rect x="284" y="78" width="30" height="60" rx="5" fill="var(--steel-soft)" stroke="var(--c-act)" stroke-width="2"/>
+      <text x="260" y="160" text-anchor="middle" font-size="12" font-weight="700" fill="var(--c-act)" transform="rotate(-90 260 160)">LINEAR ACTUATOR</text>
+      <rect x="253" y="254" width="14" height="60" fill="var(--steel)"/>
+      <line x1="330" y1="240" x2="330" y2="300" stroke="var(--danger)" stroke-width="3" marker-end="url(#arr)"/>
+      <text x="338" y="266" font-size="11" fill="var(--danger)" font-weight="700">pushes</text>
+      <text x="338" y="280" font-size="11" fill="var(--danger)" font-weight="700">down</text>
+      <!-- pusher plate + spikes -->
+      <rect x="182" y="314" width="156" height="12" rx="2" fill="var(--steel)"/>
+      <g fill="var(--steel)">
+        <path d="M200 326 l6 0 l-3 16 z"/><path d="M232 326 l6 0 l-3 16 z"/><path d="M282 326 l6 0 l-3 16 z"/><path d="M314 326 l6 0 l-3 16 z"/>
+      </g>
+      <!-- chamber walls -->
+      <rect x="166" y="290" width="12" height="300" fill="url(#hatch)" stroke="var(--steel)" stroke-width="2"/>
+      <rect x="342" y="290" width="12" height="300" fill="url(#hatch)" stroke="var(--steel)" stroke-width="2"/>
+      <!-- bottle -->
+      <path d="M232 400 q0 -14 14 -18 l0 -16 l28 0 l0 16 q14 4 14 18 l0 170 q0 8 -8 8 l-40 0 q-8 0 -8 -8 z" fill="var(--bottle)" opacity=".75" stroke="var(--water)" stroke-width="2"/>
+      <rect x="244" y="358" width="32" height="10" rx="2" fill="var(--water)"/>
+      <!-- lid switch -->
+      <rect x="354" y="300" width="20" height="16" rx="2" fill="var(--paper)" stroke="var(--c-sense)" stroke-width="2"/>
+      <!-- IR sensor -->
+      <rect x="146" y="540" width="22" height="14" rx="3" fill="var(--paper)" stroke="var(--c-sense)" stroke-width="2"/>
+      <line x1="168" y1="547" x2="342" y2="547" stroke="var(--c-sense)" stroke-width="2" stroke-dasharray="5 4"/>
+      <!-- trapdoor + ledges -->
+      <rect x="178" y="590" width="164" height="8" fill="var(--steel)"/>
+      <rect x="178" y="598" width="14" height="8" fill="var(--ink)"/>
+      <rect x="328" y="598" width="14" height="8" fill="var(--ink)"/>
+      <circle cx="184" cy="594" r="4" fill="var(--paper)" stroke="var(--ink)" stroke-width="2"/>
+      <rect x="112" y="578" width="48" height="30" rx="4" fill="var(--paper)" stroke="var(--c-servo)" stroke-width="2.5"/>
+      <text x="136" y="597" text-anchor="middle" font-size="10" font-weight="700" fill="var(--c-servo)">SERVO</text>
+      <!-- drain -->
+      <circle cx="348" cy="582" r="5" fill="var(--water)"/>
+      <path d="M354 582 C 400 582, 420 600, 420 650 L 420 690" fill="none" stroke="var(--water)" stroke-width="5"/>
+      <rect x="400" y="690" width="44" height="60" rx="4" fill="none" stroke="var(--water)" stroke-width="2.5"/>
+      <rect x="402" y="716" width="40" height="32" fill="var(--water)" opacity=".35"/>
+      <text x="422" y="768" text-anchor="middle" font-size="10" fill="var(--water)" font-weight="700">LIQUID</text>
+      <!-- chute -->
+      <path d="M178 606 L 342 606 L 300 640 L 220 640 z" fill="none" stroke="var(--steel)" stroke-width="2.5"/>
+      <!-- scale -->
+      <rect x="196" y="654" width="128" height="7" rx="2" fill="var(--c-scale)"/>
+      <rect x="276" y="661" width="10" height="10" fill="var(--ink)"/>
+      <rect x="150" y="671" width="140" height="14" rx="2" fill="var(--paper)" stroke="var(--c-scale)" stroke-width="2.5"/>
+      <rect x="138" y="671" width="28" height="44" fill="url(#hatch)" stroke="var(--steel)" stroke-width="2"/>
+      <rect x="74" y="715" width="246" height="8" fill="var(--steel)"/>
+      <!-- flat bottle on tray -->
+      <rect x="226" y="644" width="56" height="10" rx="4" fill="var(--bottle)" stroke="var(--water)" stroke-width="1.5"/>
+      <!-- sweeper -->
+      <rect x="164" y="634" width="26" height="18" rx="3" fill="var(--paper)" stroke="var(--c-servo)" stroke-width="2.5"/>
+      <line x1="190" y1="643" x2="222" y2="643" stroke="var(--c-servo)" stroke-width="4" stroke-linecap="round"/>
+      <path d="M324 657 L 352 690" stroke="var(--steel)" stroke-width="3"/>
+      <!-- bin -->
+      <path d="M340 690 L 340 772 L 396 772 L 396 690" fill="none" stroke="var(--steel)" stroke-width="3"/>
+      <text x="368" y="760" text-anchor="middle" font-size="11" font-weight="700" fill="var(--muted)">BIN</text>
+      <rect x="352" y="676" width="34" height="10" rx="2" fill="var(--paper)" stroke="var(--c-sense)" stroke-width="2"/>
+      <line x1="369" y1="688" x2="369" y2="738" stroke="var(--c-sense)" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <!-- callouts -->
+      <g font-size="12" font-weight="800" fill="var(--paper)" font-family="Archivo, Arial, sans-serif" text-anchor="middle">
+        <g><line x1="320" y1="120" x2="510" y2="110" stroke="var(--muted)"/><circle cx="520" cy="110" r="12" fill="var(--green)"/><text x="520" y="114">1</text></g>
+        <g><line x1="338" y1="320" x2="510" y2="200" stroke="var(--muted)"/><circle cx="520" cy="200" r="12" fill="var(--green)"/><text x="520" y="204">2</text></g>
+        <g><line x1="354" y1="420" x2="510" y2="290" stroke="var(--muted)"/><circle cx="520" cy="290" r="12" fill="var(--green)"/><text x="520" y="294">3</text></g>
+        <g><line x1="374" y1="308" x2="510" y2="370" stroke="var(--muted)"/><circle cx="520" cy="370" r="12" fill="var(--green)"/><text x="520" y="374">4</text></g>
+        <g><line x1="300" y1="547" x2="510" y2="450" stroke="var(--muted)"/><circle cx="520" cy="450" r="12" fill="var(--green)"/><text x="520" y="454">5</text></g>
+        <g><line x1="342" y1="594" x2="510" y2="530" stroke="var(--muted)"/><circle cx="520" cy="530" r="12" fill="var(--green)"/><text x="520" y="534">6</text></g>
+        <g><line x1="440" y1="640" x2="510" y2="600" stroke="var(--muted)"/><circle cx="520" cy="600" r="12" fill="var(--green)"/><text x="520" y="604">7</text></g>
+        <g><line x1="290" y1="678" x2="510" y2="660" stroke="var(--muted)"/><circle cx="520" cy="660" r="12" fill="var(--green)"/><text x="520" y="664">8</text></g>
+        <g><line x1="386" y1="681" x2="510" y2="715" stroke="var(--muted)"/><circle cx="520" cy="715" r="12" fill="var(--green)"/><text x="520" y="719">9</text></g>
+        <g><line x1="396" y1="760" x2="510" y2="765" stroke="var(--muted)"/><circle cx="520" cy="765" r="12" fill="var(--green)"/><text x="520" y="769">10</text></g>
+        <g><line x1="112" y1="593" x2="40" y2="640" stroke="var(--muted)"/><circle cx="30" cy="650" r="12" fill="var(--green)"/><text x="30" y="654">11</text></g>
+        <g><line x1="164" y1="643" x2="40" y2="700" stroke="var(--muted)"/><circle cx="30" cy="710" r="12" fill="var(--green)"/><text x="30" y="714">12</text></g>
+      </g>
+      <text x="560" y="40" font-size="11" fill="var(--muted)" text-anchor="end">side view, cut open</text>
+    </svg>
+    </div>
+    <ul class="legend">
+      <li><span class="k">1</span>Linear actuator, bolted to the top crossbar</li>
+      <li><span class="k">2</span>Pusher plate with 4 spikes underneath</li>
+      <li><span class="k">3</span>Crushing chamber (bottle stands upright)</li>
+      <li><span class="k">4</span>Lid switch: closed lid presses it</li>
+      <li><span class="k">5</span>IR sensor: sees the bottle</li>
+      <li><span class="k">6</span>Trapdoor resting on ledges, drain hole above it</li>
+      <li><span class="k">7</span>Drain hose to a liquid container</li>
+      <li><span class="k">8</span>Scale: tray on the load cell's free end</li>
+      <li><span class="k">9</span>Ultrasonic sensor above the bin</li>
+      <li><span class="k">10</span>Storage bin</li>
+      <li><span class="k">11</span>Trapdoor servo</li>
+      <li><span class="k">12</span>Sweeper servo (pushes bottle into bin)</li>
+    </ul>
+    <figcaption>The liquid path (blue) goes out the side, never near the scale. The electronics box sits high and away from the wet parts.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 2. PARTS ============ -->
+<section class="section" id="parts">
+  <span class="eyebrow">Section 2</span>
+  <h2>Parts list</h2>
+  <p><span class="have">Have</span> = you already have it. <span class="buy">Buy</span> = still needed. Prices change, so compare a few shops.</p>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Part</th><th>How many</th><th>What it does</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr class="group"><td colspan="4">Electronics</td></tr>
+      <tr><td>ESP32 board (30-pin, Type-C)</td><td>1</td><td>The brain. Runs the program.</td><td class="have">Have</td></tr>
+      <tr><td>MFRC522 RFID reader + cards</td><td>1</td><td>Reads student ID cards</td><td class="have">Have</td></tr>
+      <tr><td>5 kg load cell + HX711</td><td>1</td><td>The scale</td><td class="have">Have</td></tr>
+      <tr><td>20x4 LCD with I2C backpack</td><td>1</td><td>Shows short messages on the machine</td><td class="buy">Buy</td></tr>
+      <tr><td>BTS7960 motor driver (43 A)</td><td>1</td><td>Lets the ESP32 move the actuator out and back</td><td class="buy">Buy</td></tr>
+      <tr><td>MG996R servo (metal gear)</td><td>2</td><td>Trapdoor and sweeper</td><td class="buy">Buy</td></tr>
+      <tr><td>E18-D80NK IR sensor</td><td>1</td><td>Detects the bottle in the chamber</td><td class="buy">Buy</td></tr>
+      <tr><td>Limit switch with lever (micro switch)</td><td>1</td><td>Detects the lid is closed</td><td class="buy">Buy</td></tr>
+      <tr><td>HC-SR04 ultrasonic sensor</td><td>1</td><td>Measures how full the bin is</td><td class="buy">Buy</td></tr>
+      <tr><td>Resistors 1 kΩ and 2 kΩ</td><td>1 each</td><td>Protect the ESP32 from the ultrasonic's 5 V signal</td><td class="buy">Buy</td></tr>
+      <tr class="group"><td colspan="4">Power</td></tr>
+      <tr><td>12 V power supply, at least 10 A</td><td>1</td><td>Main power for everything</td><td class="buy">Buy</td></tr>
+      <tr><td>Buck converter (adjustable, 5 A, e.g. XL4015)</td><td>2</td><td>12 V → 5 V (ESP32, sensors) and 12 V → 6 V (servos)</td><td class="buy">Buy</td></tr>
+      <tr><td>Emergency stop button (red mushroom, NC)</td><td>1</td><td>Cuts power to the actuator instantly</td><td class="buy">Buy</td></tr>
+      <tr><td>Fuse holder + 10 A fuse</td><td>1</td><td>Protects against short circuits</td><td class="buy">Buy</td></tr>
+      <tr><td>Wire: 18 AWG (power) and 22 AWG (signals), terminal blocks</td><td>—</td><td>Connections</td><td class="buy">Buy</td></tr>
+      <tr class="group"><td colspan="4">Mechanism and body</td></tr>
+      <tr><td>Linear actuator, 12 V, 1500 N, 200 mm stroke, built-in limit switches</td><td>1</td><td>Crushes the bottle</td><td class="buy">Buying</td></tr>
+      <tr><td>Steel square tube or angle bar (frame)</td><td>about 8 m</td><td>Strong frame that holds the crushing force</td><td class="buy">Buy</td></tr>
+      <tr><td>Steel plate 5 mm, 100 × 100 mm</td><td>1</td><td>Pusher plate</td><td class="buy">Buy</td></tr>
+      <tr><td>Steel plate 3 mm, 110 × 110 mm</td><td>1</td><td>Trapdoor</td><td class="buy">Buy</td></tr>
+      <tr><td>M8 bolts 30 mm (ground to a point) + nuts</td><td>4</td><td>Spikes that pierce the bottle</td><td class="buy">Buy</td></tr>
+      <tr><td>Steel sheet or thick plywood + steel lining</td><td>—</td><td>Chamber walls and outer panels</td><td class="buy">Buy</td></tr>
+      <tr><td>Clear acrylic 3 mm</td><td>small piece</td><td>Lid window, RFID reader cover</td><td class="buy">Buy</td></tr>
+      <tr><td>Hinges, small hose (10 mm), plastic container</td><td>—</td><td>Lid, drain</td><td class="buy">Buy</td></tr>
+      <tr><td>Storage bin (about 30 × 30 × 40 cm)</td><td>1</td><td>Holds crushed bottles</td><td class="buy">Buy</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="warn">
+    <b>Do not use a single-channel relay for the actuator</b>
+    <p>A one-channel relay can only turn the actuator on in one direction, so it could crush but never pull back up. The BTS7960 drives it both ways and lets the program control it safely.</p>
+  </div>
+</section>
+
+<!-- ============ 3. SAFETY ============ -->
+<section class="section" id="safety">
+  <span class="eyebrow">Section 3</span>
+  <h2>Safety rules (read these first)</h2>
+  <div class="danger">
+    <b>The actuator pushes with 1500 N, about the weight of 150 kg.</b>
+    <p>It can break fingers. Never put your hand in the chamber while the machine has power.</p>
+  </div>
+  <ul class="ok-list">
+    <li><b>Unplug the 12 V power before touching any wire.</b> Also unplug the USB cable before moving wires on the ESP32.</li>
+    <li><b>12 V must never touch the ESP32.</b> The ESP32 only gets 5 V from a buck converter. One wrong wire destroys it.</li>
+    <li><b>Set each buck converter's voltage with a multimeter before connecting anything to it.</b> They often come set to the wrong voltage.</li>
+    <li>The RFID reader runs on <b>3.3 V only</b>, never 5 V.</li>
+    <li>The lid must close fully over the chamber. The program will not move anything when the lid is open.</li>
+    <li>Put the emergency stop button where a person standing at the machine can hit it.</li>
+    <li>Keep water away from the electronics box. Liquid only goes out through the drain hose.</li>
+    <li>Every connection on the 12 V side must be screwed into a terminal or soldered and covered with heat-shrink. No bare wire.</li>
+  </ul>
+</section>
+
+<!-- ============ 4. BODY ============ -->
+<section class="section phase" id="body">
+  <span class="eyebrow">Section 4</span>
+  <h2>Build the body and the crushing chamber</h2>
+  <p>The frame must be strong. When the actuator pushes down on the bottle, it pushes up on the top crossbar with the same force. A weak top will bend or crack.</p>
+  <div class="two">
+    <figure>
+      <div class="draw">
+      <svg class="small" viewBox="0 0 360 380" role="img" aria-labelledby="dim-t">
+        <title id="dim-t">Chamber size: 110 mm wide inside, 260 mm tall, bottle 65 mm wide and 220 mm tall</title>
+        <rect x="80" y="40" width="14" height="300" fill="var(--steel-soft)" stroke="var(--steel)" stroke-width="2"/>
+        <rect x="244" y="40" width="14" height="300" fill="var(--steel-soft)" stroke="var(--steel)" stroke-width="2"/>
+        <rect x="94" y="330" width="150" height="10" fill="var(--steel)"/>
+        <path d="M137 120 q0 -14 14 -18 l0 -16 l36 0 l0 16 q14 4 14 18 l0 200 q0 8 -8 8 l-48 0 q-8 0 -8 -8 z" fill="var(--bottle)" opacity=".7" stroke="var(--water)" stroke-width="2"/>
+        <g stroke="var(--ink)" stroke-width="1.5" fill="var(--ink)" font-size="13">
+          <line x1="94" y1="365" x2="244" y2="365"/><line x1="94" y1="358" x2="94" y2="372"/><line x1="244" y1="358" x2="244" y2="372"/>
+          <text x="169" y="360" text-anchor="middle" stroke="none" font-weight="700">110 mm inside</text>
+          <line x1="290" y1="40" x2="290" y2="330"/><line x1="283" y1="40" x2="297" y2="40"/><line x1="283" y1="330" x2="297" y2="330"/>
+          <text x="300" y="190" stroke="none" font-weight="700">260</text><text x="300" y="206" stroke="none">mm</text>
+          <line x1="137" y1="22" x2="201" y2="22"/><line x1="137" y1="15" x2="137" y2="29"/><line x1="201" y1="15" x2="201" y2="29"/>
+          <text x="169" y="16" text-anchor="middle" stroke="none">bottle 65 mm</text>
+          <line x1="40" y1="86" x2="40" y2="328"/><line x1="33" y1="86" x2="47" y2="86"/><line x1="33" y1="328" x2="47" y2="328"/>
+          <text x="30" y="200" stroke="none" text-anchor="end" transform="rotate(-90 30 200)">bottle about 220 mm</text>
+        </g>
+      </svg>
+      </div>
+      <figcaption>Inside of the chamber, front view. A 500 mL bottle stands upright with room to spare.</figcaption>
+    </figure>
+    <div class="stack">
+      <h3>Sizes to aim for</h3>
+      <ul>
+        <li>Chamber inside: <b>110 × 110 mm</b>, <b>260 mm</b> tall.</li>
+        <li>Whole machine: about <b>45 cm wide, 40 cm deep, 115 cm tall</b>.</li>
+        <li>The actuator body is about 310 mm long when pulled in. It sits above the chamber.</li>
+        <li>With a 200 mm stroke, the plate stops about 30 mm above the trapdoor. That is the flat bottle's final thickness.</li>
+      </ul>
+      <p class="check">Measure your actuator when it arrives. If its length is different, adjust the frame height, not the chamber.</p>
+    </div>
+  </div>
+  <ol class="steps">
+    <li><div><b>Build the frame</b><p>Make a rectangular frame from steel square tube or angle bar. Weld or bolt the corners. Add a strong crossbar at the top where the actuator will hang. Add a shelf about 25 cm from the floor for the scale.</p></div></li>
+    <li><div><b>Build the chamber</b><p>Make a box with 4 walls and an open top and bottom, 110 × 110 mm inside, 260 mm tall. Use steel sheet, or 18 mm plywood lined with metal sheet. Plywood alone gets wet and swells.</p></div></li>
+    <li><div><b>Make the lid</b><p>Cut a door on the front of the chamber, big enough to drop a bottle in (about 100 × 240 mm). Hinge it on one side. A clear acrylic window lets students watch the crushing.</p><p class="check">The lid must close flat and stay closed. Add a small magnet or latch.</p></div></li>
+    <li><div><b>Mount the chamber to the frame</b><p>Bolt the chamber walls to the frame so the top is centered under the top crossbar. Leave room under the chamber for the trapdoor and chute (about 6 cm).</p></div></li>
+  </ol>
+</section>
+
+<!-- ============ 5. CRUSHER ============ -->
+<section class="section phase" id="crusher">
+  <span class="eyebrow">Section 5</span>
+  <h2>The crusher: actuator, plate and spikes</h2>
+  <ol class="steps">
+    <li><div><b>Hang the actuator</b><p>Bolt the actuator's back end (the end with the motor) to the top crossbar with its mounting bracket and a steel pin. It must point straight down, centered over the chamber.</p></div></li>
+    <li><div><b>Make the pusher plate</b><p>Cut a 100 × 100 mm steel plate (5 mm thick). It must slide inside the 110 mm chamber with about 5 mm space on each side. Weld or bolt a short tube on top so it attaches to the actuator's rod end with a pin.</p></div></li>
+    <li><div><b>Add the spikes</b><p>Grind the tips of 4 M8 bolts to a point. Drill 4 holes in the plate, 25 mm in from each corner, and bolt the spikes through so 20 mm sticks out underneath. Tighten with nuts on top.</p><p class="check">The spikes punch holes in the bottle so the liquid can drain out and the bottle flattens easily.</p></div></li>
+    <li><div><b>Check the travel</b><p>Before wiring it to the ESP32, test the actuator straight on 12 V (red to +, black to −, then swapped). Watch it go all the way out and back.</p><p class="check">At full extension the plate must stop above the trapdoor, never hit it. Time how long it takes to go out and back. Tell the developer that number.</p></div></li>
+  </ol>
+  <div class="note">
+    <b>Why use an actuator with built-in limit switches?</b>
+    <p>Those switches stop the motor at each end by themselves. Even if the program had a problem, the actuator would not keep pushing past its end.</p>
+  </div>
+</section>
+
+<!-- ============ 6. TRAPDOOR + DRAIN ============ -->
+<section class="section phase" id="trapdoor">
+  <span class="eyebrow">Section 6</span>
+  <h2>Trapdoor and drain</h2>
+  <p>The trapdoor is the floor of the chamber. The bottle gets crushed against it, then it swings open to drop the bottle. <b>A servo is far too weak to hold 1500 N</b>, so the door must rest on steel ledges while crushing. The servo only swings it open and closed.</p>
+  <figure>
+    <div class="draw">
+    <svg viewBox="0 0 640 260" role="img" aria-labelledby="td-t">
+      <title id="td-t">Trapdoor closed resting on ledges during crushing, and open after crushing</title>
+      <defs><marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--danger)"/></marker></defs>
+      <text x="160" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">CLOSED: while crushing</text>
+      <rect x="60" y="40" width="12" height="150" fill="var(--steel-soft)" stroke="var(--steel)" stroke-width="2"/>
+      <rect x="248" y="40" width="12" height="150" fill="var(--steel-soft)" stroke="var(--steel)" stroke-width="2"/>
+      <rect x="72" y="60" width="176" height="10" fill="var(--steel)"/>
+      <line x1="160" y1="74" x2="160" y2="140" stroke="var(--danger)" stroke-width="3" marker-end="url(#arr2)"/>
+      <text x="168" y="110" font-size="12" fill="var(--danger)" font-weight="700">crush force</text>
+      <rect x="92" y="150" width="136" height="14" rx="4" fill="var(--bottle)" stroke="var(--water)" stroke-width="1.5"/>
+      <rect x="72" y="166" width="176" height="8" fill="var(--steel)"/>
+      <rect x="72" y="174" width="18" height="12" fill="var(--ink)"/>
+      <rect x="230" y="174" width="18" height="12" fill="var(--ink)"/>
+      <circle cx="78" cy="170" r="4" fill="var(--paper)" stroke="var(--ink)" stroke-width="2"/>
+      <circle cx="252" cy="158" r="5" fill="var(--water)"/>
+      <text x="270" y="152" font-size="12" fill="var(--water)" font-weight="700">drain hole</text>
+      <text x="270" y="168" font-size="12" fill="var(--water)">just above door</text>
+      <text x="160" y="212" text-anchor="middle" font-size="12" fill="var(--ink)" font-weight="700">Ledges (black) take the force</text>
+      <text x="160" y="230" text-anchor="middle" font-size="12" fill="var(--muted)">the servo feels nothing</text>
+      <text x="480" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">OPEN: drop the bottle</text>
+      <rect x="380" y="40" width="12" height="150" fill="var(--steel-soft)" stroke="var(--steel)" stroke-width="2"/>
+      <rect x="568" y="40" width="12" height="150" fill="var(--steel-soft)" stroke="var(--steel)" stroke-width="2"/>
+      <rect x="392" y="60" width="176" height="10" fill="var(--steel)"/>
+      <rect x="392" y="174" width="18" height="12" fill="var(--ink)"/>
+      <rect x="550" y="174" width="18" height="12" fill="var(--ink)"/>
+      <line x1="398" y1="170" x2="420" y2="250" stroke="var(--steel)" stroke-width="8" stroke-linecap="round"/>
+      <circle cx="398" cy="170" r="4" fill="var(--paper)" stroke="var(--ink)" stroke-width="2"/>
+      <rect x="470" y="200" width="60" height="12" rx="4" fill="var(--bottle)" stroke="var(--water)" stroke-width="1.5" transform="rotate(20 500 206)"/>
+      <path d="M520 214 l0 30" stroke="var(--muted)" stroke-width="2" stroke-dasharray="4 4"/>
+      <text x="530" y="240" font-size="12" fill="var(--muted)">to the scale</text>
+      <rect x="330" y="150" width="40" height="26" rx="4" fill="var(--paper)" stroke="var(--c-servo)" stroke-width="2.5"/>
+      <text x="350" y="167" text-anchor="middle" font-size="10" font-weight="700" fill="var(--c-servo)">servo</text>
+      <line x1="370" y1="166" x2="396" y2="172" stroke="var(--c-servo)" stroke-width="3"/>
+    </svg>
+    </div>
+    <figcaption>The door hinges on one side and swings down. Steel ledges welded inside the chamber hold it up while crushing.</figcaption>
+  </figure>
+  <ol class="steps">
+    <li><div><b>Weld the ledges</b><p>Weld or bolt two strips of steel angle (15 mm) inside the bottom of the chamber, on the hinge side and the opposite side. The door rests on them when closed.</p></div></li>
+    <li><div><b>Hinge the door</b><p>Use a strong steel hinge (or a steel rod through two tubes) on one side. The door must swing down freely.</p></div></li>
+    <li><div><b>Connect the servo</b><p>Mount the MG996R on the outside of the chamber, next to the hinge. Connect its arm to the door with a short stiff wire or rod. The servo pulls the door shut and lets it swing open.</p><p class="check">With the door closed, push down on it hard with your hand. The ledges should carry it, and the servo arm should not move.</p></div></li>
+    <li><div><b>Drill the drain hole</b><p>Drill a 10 mm hole in the chamber wall, just above the closed door. Tilt the door very slightly toward that side (2–3 mm lower) so liquid flows to the hole.</p></div></li>
+    <li><div><b>Attach the hose</b><p>Push a 10 mm hose onto a short pipe fitting at the hole. Run it down to a closed container on the floor, away from the scale.</p><p class="check">Pour a cup of water into the chamber. All of it should come out of the hose, none on the scale.</p></div></li>
+    <li><div><b>Add the chute</b><p>Under the trapdoor, make a small funnel from sheet metal or plastic that guides the falling bottle to the middle of the scale tray. It must not touch the tray.</p></div></li>
+  </ol>
+</section>
+
+<!-- ============ 7. SCALE ============ -->
+<section class="section phase" id="scale">
+  <span class="eyebrow">Section 7</span>
+  <h2>Weighing station and sweeper</h2>
+  <p>The scale already works on the bench. Mounting it wrong is the most common way to ruin the readings. Follow the picture closely.</p>
+  <figure>
+    <div class="draw">
+    <svg viewBox="0 0 640 250" role="img" aria-labelledby="lc-t">
+      <title id="lc-t">Load cell mounting: fixed end screwed to a block, tray on a spacer at the free end, gap underneath</title>
+      <rect x="40" y="200" width="560" height="14" fill="var(--steel)"/>
+      <text x="320" y="236" text-anchor="middle" font-size="12" fill="var(--muted)">shelf of the machine</text>
+      <rect x="70" y="130" width="90" height="70" fill="var(--wood)" stroke="var(--ink)" stroke-width="1.5"/>
+      <text x="115" y="170" text-anchor="middle" font-size="12" fill="var(--ink)" font-weight="700">block</text>
+      <rect x="70" y="106" width="380" height="24" rx="3" fill="var(--paper)" stroke="var(--c-scale)" stroke-width="3"/>
+      <circle cx="232" cy="118" r="9" fill="none" stroke="var(--c-scale)" stroke-width="2"/>
+      <circle cx="262" cy="118" r="9" fill="none" stroke="var(--c-scale)" stroke-width="2"/>
+      <rect x="232" y="109" width="30" height="18" fill="none" stroke="var(--c-scale)" stroke-width="2"/>
+      <text x="247" y="148" text-anchor="middle" font-size="11" fill="var(--c-scale)" font-weight="700">middle bends: touch nothing</text>
+      <g fill="var(--ink)"><circle cx="92" cy="118" r="4"/><circle cx="130" cy="118" r="4"/><circle cx="388" cy="118" r="4"/><circle cx="426" cy="118" r="4"/></g>
+      <rect x="380" y="88" width="56" height="18" fill="var(--wood)" stroke="var(--ink)" stroke-width="1.5"/>
+      <text x="408" y="101" text-anchor="middle" font-size="10" fill="var(--ink)" font-weight="700">spacer</text>
+      <rect x="300" y="76" width="216" height="12" rx="3" fill="var(--c-scale)"/>
+      <text x="408" y="66" text-anchor="middle" font-size="13" fill="var(--ink)" font-weight="700">tray (light plastic or aluminum)</text>
+      <line x1="440" y1="134" x2="440" y2="196" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <text x="452" y="170" font-size="12" fill="var(--danger)" font-weight="700">gap under the free end</text>
+      <text x="452" y="186" font-size="12" fill="var(--danger)">(at least 5 mm)</text>
+      <text x="115" y="96" text-anchor="middle" font-size="12" fill="var(--ink)" font-weight="700">fixed end</text>
+      <text x="115" y="80" text-anchor="middle" font-size="11" fill="var(--muted)">2 screws into block</text>
+      <text x="590" y="110" text-anchor="end" font-size="12" fill="var(--ink)" font-weight="700">free end</text>
+      <text x="590" y="126" text-anchor="end" font-size="11" fill="var(--muted)">2 screws into spacer</text>
+      <path d="M344 112 l12 0 l-6 10 z" fill="var(--ink)"/>
+      <text x="350" y="104" text-anchor="middle" font-size="10" fill="var(--muted)">arrow down</text>
+    </svg>
+    </div>
+    <figcaption>This is how you tested it on the bench: weight on the free end, over its 2 screw holes. Keep it the same in the machine. The arrow on the load cell must point down.</figcaption>
+  </figure>
+  <ol class="steps">
+    <li><div><b>Mount the load cell</b><p>Screw the fixed end firmly onto a wooden or metal block on the shelf. Use the 2 screw holes on that end only. Put a spacer on the free end's 2 holes and screw the tray onto the spacer.</p><p class="check">Nothing touches the load cell except the block and the spacer. Wires hang loose, not pulled tight.</p></div></li>
+    <li><div><b>Keep the tray light and level</b><p>Use a light tray about 120 × 120 mm with a low rim on 3 sides. Leave the bin side open so the bottle can be pushed off.</p></div></li>
+    <li><div><b>Mount the sweeper servo</b><p>Fix the second MG996R on the shelf (not on the tray!) at the back of the tray. Screw a flat arm, about 12 cm long, onto it. When it turns, the arm sweeps across the tray and pushes the bottle off the open side.</p><p class="check">At rest, the arm must not touch the tray or the bottle. Anything touching the tray changes the weight.</p></div></li>
+    <li><div><b>Make a slide to the bin</b><p>A short sloped plate from the tray's open edge into the bin, so the pushed bottle slides in.</p></div></li>
+    <li><div><b>Recalibrate after mounting</b><p>Once the scale is in the machine, open the EcoEarn app, go to <b>Live → scale button</b>, press <b>Tare</b> with the tray empty, then put a known weight (for example 3 coins weighed on a kitchen scale) and press <b>Calibrate</b>.</p></div></li>
+  </ol>
+</section>
+
+<!-- ============ 8. BIN ============ -->
+<section class="section phase" id="bin">
+  <span class="eyebrow">Section 8</span>
+  <h2>Storage bin and fill sensor</h2>
+  <ol class="steps">
+    <li><div><b>Place the bin</b><p>Put the bin under the end of the slide. Make a door on the machine's side or front so the bin can be pulled out and emptied.</p></div></li>
+    <li><div><b>Mount the ultrasonic sensor</b><p>Fix the HC-SR04 above the bin, facing straight down, with its two "eyes" pointing at the bin floor. Nothing should be between the sensor and the bottom except the bottles.</p><p class="check">Measure the distance from the sensor to the empty bin floor in cm. Tell the developer. The program uses it to work out the fill percent.</p></div></li>
+  </ol>
+</section>
+
+<!-- ============ 9. FRONT ============ -->
+<section class="section phase" id="front">
+  <span class="eyebrow">Section 9</span>
+  <h2>Front panel: card reader, screen, lid</h2>
+  <div class="two">
+    <figure>
+      <div class="draw">
+      <svg class="small" viewBox="0 0 360 440" role="img" aria-labelledby="fr-t">
+        <title id="fr-t">Front view of the machine with the screen, card reader spot, lid, emergency stop and bin door</title>
+        <rect x="40" y="20" width="280" height="400" rx="10" fill="var(--steel-soft)" stroke="var(--steel)" stroke-width="3"/>
+        <rect x="70" y="44" width="150" height="56" rx="4" fill="var(--paper)" stroke="var(--c-lcd)" stroke-width="2.5"/>
+        <text x="145" y="66" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--c-lcd)">TAP YOUR CARD</text>
+        <text x="145" y="84" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--c-lcd)">1 pt per 10 g</text>
+        <rect x="236" y="44" width="62" height="56" rx="6" fill="var(--paper)" stroke="var(--c-rfid)" stroke-width="2.5"/>
+        <path d="M256 66 q11 -8 22 0 M260 72 q7 -5 14 0" fill="none" stroke="var(--c-rfid)" stroke-width="2"/>
+        <circle cx="267" cy="78" r="2.5" fill="var(--c-rfid)"/>
+        <text x="267" y="94" text-anchor="middle" font-size="10" fill="var(--c-rfid)" font-weight="700">TAP</text>
+        <rect x="110" y="122" width="140" height="190" rx="6" fill="var(--paper)" stroke="var(--ink)" stroke-width="2.5"/>
+        <rect x="124" y="136" width="112" height="140" rx="4" fill="var(--bottle)" opacity=".3"/>
+        <text x="180" y="210" text-anchor="middle" font-size="12" fill="var(--ink)" font-weight="700">LID</text>
+        <text x="180" y="226" text-anchor="middle" font-size="11" fill="var(--muted)">clear window</text>
+        <rect x="236" y="200" width="10" height="34" rx="3" fill="var(--steel)"/>
+        <circle cx="290" cy="160" r="18" fill="var(--danger)"/>
+        <text x="290" y="196" text-anchor="middle" font-size="10" fill="var(--danger)" font-weight="700">STOP</text>
+        <rect x="70" y="330" width="220" height="74" rx="6" fill="none" stroke="var(--steel)" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="180" y="372" text-anchor="middle" font-size="12" fill="var(--muted)" font-weight="700">BIN DOOR</text>
+      </svg>
+      </div>
+      <figcaption>Front view. Screen and card reader at chest height, the lid in the middle, the emergency stop easy to reach.</figcaption>
+    </figure>
+    <div class="stack">
+      <h3>Card reader</h3>
+      <p>Mount the RFID reader <b>behind a thin plastic or acrylic panel (max 5 mm)</b>, with its flat side facing out. Draw a card symbol on the front so students know where to tap.</p>
+      <div class="warn"><b>Metal blocks the card reader</b><p>The reader cannot read through a steel panel. Cut a window in the metal and cover it with plastic, or mount the reader on a plastic part of the front.</p></div>
+      <h3>Screen</h3>
+      <p>Cut a rectangular window for the 20x4 LCD and screw it in from behind.</p>
+      <h3>Lid switch</h3>
+      <p>Mount the limit switch on the frame so the closing lid presses its lever. You should hear a click right when the lid closes fully, not before.</p>
+      <h3>IR sensor</h3>
+      <p>Drill a hole in the chamber wall about 3 cm above the trapdoor and screw the E18-D80NK in, pointing across the chamber. Turn the small screw on its back until its light turns on only when a bottle is inside.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10. POWER ============ -->
+<section class="section phase" id="power">
+  <span class="eyebrow">Section 10</span>
+  <h2>Power</h2>
+  <p>One 12 V supply feeds everything. Two buck converters step it down for the parts that need less.</p>
+  <figure>
+    <div class="draw">
+    <svg viewBox="0 0 700 330" role="img" aria-labelledby="pw-t">
+      <title id="pw-t">Power diagram: 12 volt supply through fuse to the emergency stop and motor driver, and to two buck converters for 5 volt and 6 volt</title>
+      <g font-size="12" fill="var(--ink)">
+        <rect x="20" y="130" width="110" height="64" rx="8" fill="var(--paper)" stroke="var(--c-power)" stroke-width="2.5"/>
+        <text x="75" y="158" text-anchor="middle" font-weight="700">12 V supply</text><text x="75" y="176" text-anchor="middle" fill="var(--muted)">10 A or more</text>
+        <rect x="160" y="146" width="56" height="32" rx="6" fill="var(--paper)" stroke="var(--c-power)" stroke-width="2"/>
+        <text x="188" y="167" text-anchor="middle" font-weight="700">fuse</text>
+        <line x1="130" y1="162" x2="160" y2="162" stroke="var(--c-power)" stroke-width="3"/>
+        <line x1="216" y1="162" x2="250" y2="162" stroke="var(--c-power)" stroke-width="3"/>
+        <line x1="250" y1="50" x2="250" y2="280" stroke="var(--c-power)" stroke-width="3"/>
+        <!-- motor branch -->
+        <line x1="250" y1="50" x2="290" y2="50" stroke="var(--c-power)" stroke-width="3"/>
+        <circle cx="314" cy="50" r="22" fill="var(--danger)"/><text x="314" y="54" text-anchor="middle" font-size="10" font-weight="700" fill="var(--paper)">E-STOP</text>
+        <line x1="336" y1="50" x2="380" y2="50" stroke="var(--c-power)" stroke-width="3"/>
+        <rect x="380" y="26" width="120" height="48" rx="8" fill="var(--paper)" stroke="var(--c-act)" stroke-width="2.5"/>
+        <text x="440" y="47" text-anchor="middle" font-weight="700">BTS7960</text><text x="440" y="63" text-anchor="middle" fill="var(--muted)">B+ / B−</text>
+        <line x1="500" y1="50" x2="540" y2="50" stroke="var(--c-act)" stroke-width="3"/>
+        <rect x="540" y="26" width="140" height="48" rx="8" fill="var(--paper)" stroke="var(--c-act)" stroke-width="2.5"/>
+        <text x="610" y="47" text-anchor="middle" font-weight="700">Actuator</text><text x="610" y="63" text-anchor="middle" fill="var(--muted)">M+ / M−</text>
+        <!-- 5V branch -->
+        <line x1="250" y1="162" x2="380" y2="162" stroke="var(--c-power)" stroke-width="3"/>
+        <rect x="380" y="136" width="120" height="52" rx="8" fill="var(--paper)" stroke="var(--c-power)" stroke-width="2.5"/>
+        <text x="440" y="158" text-anchor="middle" font-weight="700">Buck A</text><text x="440" y="176" text-anchor="middle" fill="var(--muted)">set to 5.0 V</text>
+        <line x1="500" y1="162" x2="540" y2="162" stroke="var(--c-lcd)" stroke-width="3"/>
+        <rect x="540" y="110" width="140" height="104" rx="8" fill="var(--paper)" stroke="var(--c-lcd)" stroke-width="2.5"/>
+        <text x="610" y="132" text-anchor="middle" font-weight="700">5 V parts</text>
+        <text x="610" y="152" text-anchor="middle" fill="var(--muted)">ESP32 VIN pin</text>
+        <text x="610" y="168" text-anchor="middle" fill="var(--muted)">LCD</text>
+        <text x="610" y="184" text-anchor="middle" fill="var(--muted)">IR sensor</text>
+        <text x="610" y="200" text-anchor="middle" fill="var(--muted)">HC-SR04</text>
+        <!-- 6V branch -->
+        <line x1="250" y1="280" x2="380" y2="280" stroke="var(--c-power)" stroke-width="3"/>
+        <rect x="380" y="254" width="120" height="52" rx="8" fill="var(--paper)" stroke="var(--c-power)" stroke-width="2.5"/>
+        <text x="440" y="276" text-anchor="middle" font-weight="700">Buck B</text><text x="440" y="294" text-anchor="middle" fill="var(--muted)">set to 6.0 V</text>
+        <line x1="500" y1="280" x2="540" y2="280" stroke="var(--c-servo)" stroke-width="3"/>
+        <rect x="540" y="254" width="140" height="52" rx="8" fill="var(--paper)" stroke="var(--c-servo)" stroke-width="2.5"/>
+        <text x="610" y="276" text-anchor="middle" font-weight="700">2 servos</text><text x="610" y="294" text-anchor="middle" fill="var(--muted)">red wires</text>
+        <text x="20" y="250" fill="var(--ink)" font-weight="700">All GND (−) wires</text>
+        <text x="20" y="268" fill="var(--ink)" font-weight="700">connect together.</text>
+        <text x="20" y="290" fill="var(--muted)">Including the ESP32 GND.</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>The 3.3 V parts (RFID reader, HX711, BTS7960 logic) get power from the ESP32's own 3V3 pin, like on the breadboard now.</figcaption>
+  </figure>
+  <ol class="steps">
+    <li><div><b>Set the buck converters first</b><p>Connect only the 12 V input to a buck converter. Measure its output with a multimeter and turn the small brass screw until it reads 5.0 V (Buck A) or 6.0 V (Buck B). Do this before connecting anything to the output.</p></div></li>
+    <li><div><b>Wire the motor side</b><p>12 V + → fuse → emergency stop → BTS7960 <span class="pin">B+</span>. 12 V − → BTS7960 <span class="pin">B−</span>. Actuator wires → <span class="pin">M+</span> and <span class="pin">M−</span>.</p><p class="check">Use thick wire (18 AWG or bigger) here. The actuator can draw several amps.</p></div></li>
+    <li><div><b>Power the ESP32 from Buck A</b><p>Buck A + → ESP32 <span class="pin">VIN</span>. Buck A − → ESP32 <span class="pin">GND</span>. Never connect the 12 V supply to VIN.</p><p class="check">The laptop or Raspberry Pi USB cable can stay plugged in at the same time. That is fine.</p></div></li>
+    <li><div><b>Join all grounds</b><p>Every − wire (12 V supply, both bucks, BTS7960, servos, sensors, ESP32 GND) connects together on one terminal block. Without a shared ground the signals don't work.</p></div></li>
+  </ol>
+</section>
+
+<!-- ============ 11. WIRING ============ -->
+<section class="section phase" id="wiring">
+  <span class="eyebrow">Section 11</span>
+  <h2>Wiring to the ESP32</h2>
+  <p>Find each pin by the label printed on the ESP32 board (for example <span class="pin">D25</span>). The RFID reader and the scale stay wired exactly as they are now.</p>
+  <figure>
+    <div class="draw">
+    <svg viewBox="0 0 720 560" role="img" aria-labelledby="esp-t">
+      <title id="esp-t">ESP32 pin map showing which module connects to each pin</title>
+      <rect x="260" y="20" width="200" height="520" rx="12" fill="var(--steel-soft)" stroke="var(--steel)" stroke-width="2.5"/>
+      <rect x="335" y="6" width="50" height="26" rx="5" fill="var(--steel)"/>
+      <text x="360" y="60" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">ESP32</text>
+      <text x="360" y="78" text-anchor="middle" font-size="11" fill="var(--muted)">USB at the top</text>
+      <rect x="310" y="210" width="100" height="130" rx="6" fill="var(--paper)" stroke="var(--steel)"/>
+      <text x="360" y="280" text-anchor="middle" font-size="11" fill="var(--muted)">chip</text>
+      <g font-family="JetBrains Mono, monospace" font-size="12" font-weight="700">
+        <!-- left column pins: y from 100 step 30 -->
+        <g fill="var(--muted)">
+          <text x="272" y="104">EN</text><text x="272" y="134">VP</text><text x="272" y="164">VN</text>
+        </g>
+        <text x="272" y="194" fill="var(--c-sense)">D34</text>
+        <text x="272" y="224" fill="var(--muted)">D35</text>
+        <text x="272" y="254" fill="var(--c-servo)">D32</text>
+        <text x="272" y="284" fill="var(--c-servo)">D33</text>
+        <text x="272" y="314" fill="var(--c-act)">D25</text>
+        <text x="272" y="344" fill="var(--c-act)">D26</text>
+        <text x="272" y="374" fill="var(--c-sense)">D27</text>
+        <text x="272" y="404" fill="var(--c-sense)">D14</text>
+        <text x="272" y="434" fill="var(--muted)">D12</text>
+        <text x="272" y="464" fill="var(--c-sense)">D13</text>
+        <text x="272" y="494" fill="var(--ink)">GND</text>
+        <text x="272" y="524" fill="var(--c-power)">VIN</text>
+        <!-- right column -->
+        <text x="448" y="104" text-anchor="end" fill="var(--c-rfid)">D23</text>
+        <text x="448" y="134" text-anchor="end" fill="var(--c-rfid)">D22</text>
+        <text x="448" y="164" text-anchor="end" fill="var(--muted)">TX0</text>
+        <text x="448" y="194" text-anchor="end" fill="var(--muted)">RX0</text>
+        <text x="448" y="224" text-anchor="end" fill="var(--c-lcd)">D21</text>
+        <text x="448" y="254" text-anchor="end" fill="var(--c-rfid)">D19</text>
+        <text x="448" y="284" text-anchor="end" fill="var(--c-rfid)">D18</text>
+        <text x="448" y="314" text-anchor="end" fill="var(--c-rfid)">D5</text>
+        <text x="448" y="344" text-anchor="end" fill="var(--c-scale)">TX2</text>
+        <text x="448" y="374" text-anchor="end" fill="var(--c-scale)">RX2</text>
+        <text x="448" y="404" text-anchor="end" fill="var(--c-lcd)">D4</text>
+        <text x="448" y="434" text-anchor="end" fill="var(--muted)">D2</text>
+        <text x="448" y="464" text-anchor="end" fill="var(--muted)">D15</text>
+        <text x="448" y="494" text-anchor="end" fill="var(--ink)">GND</text>
+        <text x="448" y="524" text-anchor="end" fill="var(--c-power)">3V3</text>
+      </g>
+      <g font-size="12">
+        <!-- left labels -->
+        <g stroke-width="2">
+          <line x1="250" y1="190" x2="200" y2="190" stroke="var(--c-sense)"/>
+          <line x1="250" y1="250" x2="200" y2="250" stroke="var(--c-servo)"/>
+          <line x1="250" y1="280" x2="200" y2="280" stroke="var(--c-servo)"/>
+          <line x1="250" y1="310" x2="200" y2="310" stroke="var(--c-act)"/>
+          <line x1="250" y1="340" x2="200" y2="340" stroke="var(--c-act)"/>
+          <line x1="250" y1="370" x2="200" y2="370" stroke="var(--c-sense)"/>
+          <line x1="250" y1="400" x2="200" y2="400" stroke="var(--c-sense)"/>
+          <line x1="250" y1="460" x2="200" y2="460" stroke="var(--c-sense)"/>
+          <line x1="250" y1="490" x2="200" y2="490" stroke="var(--ink)"/>
+          <line x1="250" y1="520" x2="200" y2="520" stroke="var(--c-power)"/>
+        </g>
+        <g text-anchor="end">
+          <text x="194" y="194" fill="var(--c-sense)">Ultrasonic ECHO (via divider)</text>
+          <text x="194" y="254" fill="var(--c-servo)">Trapdoor servo signal</text>
+          <text x="194" y="284" fill="var(--c-servo)">Sweeper servo signal</text>
+          <text x="194" y="314" fill="var(--c-act)">BTS7960 RPWM (crush)</text>
+          <text x="194" y="344" fill="var(--c-act)">BTS7960 LPWM (back up)</text>
+          <text x="194" y="374" fill="var(--c-sense)">Ultrasonic TRIG</text>
+          <text x="194" y="404" fill="var(--c-sense)">Lid switch</text>
+          <text x="194" y="464" fill="var(--c-sense)">IR sensor (black wire)</text>
+          <text x="194" y="494" fill="var(--ink)">Shared ground</text>
+          <text x="194" y="524" fill="var(--c-power)">5 V from Buck A</text>
+        </g>
+        <!-- right labels -->
+        <g stroke-width="2">
+          <line x1="470" y1="100" x2="520" y2="100" stroke="var(--c-rfid)"/>
+          <line x1="470" y1="130" x2="520" y2="130" stroke="var(--c-rfid)"/>
+          <line x1="470" y1="220" x2="520" y2="220" stroke="var(--c-lcd)"/>
+          <line x1="470" y1="250" x2="520" y2="250" stroke="var(--c-rfid)"/>
+          <line x1="470" y1="280" x2="520" y2="280" stroke="var(--c-rfid)"/>
+          <line x1="470" y1="310" x2="520" y2="310" stroke="var(--c-rfid)"/>
+          <line x1="470" y1="340" x2="520" y2="340" stroke="var(--c-scale)"/>
+          <line x1="470" y1="370" x2="520" y2="370" stroke="var(--c-scale)"/>
+          <line x1="470" y1="400" x2="520" y2="400" stroke="var(--c-lcd)"/>
+          <line x1="470" y1="520" x2="520" y2="520" stroke="var(--c-power)"/>
+        </g>
+        <text x="526" y="104" fill="var(--c-rfid)">RFID MOSI (done)</text>
+        <text x="526" y="134" fill="var(--c-rfid)">RFID RST (done)</text>
+        <text x="526" y="224" fill="var(--c-lcd)">LCD SDA</text>
+        <text x="526" y="254" fill="var(--c-rfid)">RFID MISO (done)</text>
+        <text x="526" y="284" fill="var(--c-rfid)">RFID SCK (done)</text>
+        <text x="526" y="314" fill="var(--c-rfid)">RFID SDA (done)</text>
+        <text x="526" y="344" fill="var(--c-scale)">HX711 SCK (done)</text>
+        <text x="526" y="374" fill="var(--c-scale)">HX711 DT (done)</text>
+        <text x="526" y="404" fill="var(--c-lcd)">LCD SCL</text>
+        <text x="526" y="524" fill="var(--c-power)">RFID, HX711, BTS7960 VCC</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>Grey pins are not used. Some boards print TX2/RX2 as D17/D16. If your board's pin order differs, go by the printed labels, not the position.</figcaption>
+  </figure>
+
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Part</th><th>Part's pin</th><th>Goes to</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr class="group"><td colspan="4"><span class="dot" style="background:var(--c-act)"></span>Actuator driver BTS7960</td></tr>
+      <tr><td></td><td class="pin">RPWM</td><td class="pin">D25</td><td>Pushes the plate down</td></tr>
+      <tr><td></td><td class="pin">LPWM</td><td class="pin">D26</td><td>Pulls the plate back up</td></tr>
+      <tr><td></td><td class="pin">R_EN, L_EN</td><td>BTS7960's own <span class="pin">VCC</span></td><td>Join both to VCC with short wires</td></tr>
+      <tr><td></td><td class="pin">VCC</td><td class="pin">3V3</td><td>Logic power</td></tr>
+      <tr><td></td><td class="pin">GND</td><td class="pin">GND</td><td>R_IS and L_IS are not used</td></tr>
+      <tr class="group"><td colspan="4"><span class="dot" style="background:var(--c-servo)"></span>Servos MG996R (3 wires each)</td></tr>
+      <tr><td>Trapdoor</td><td>orange (signal)</td><td class="pin">D32</td><td rowspan="2">Red wire → Buck B +6 V. Brown wire → GND. Never power servos from the ESP32.</td></tr>
+      <tr><td>Sweeper</td><td>orange (signal)</td><td class="pin">D33</td></tr>
+      <tr class="group"><td colspan="4"><span class="dot" style="background:var(--c-sense)"></span>Sensors</td></tr>
+      <tr><td>IR E18-D80NK</td><td>brown / blue / black</td><td>5 V / GND / <span class="pin">D13</span></td><td>Black wire straight to D13, no resistor</td></tr>
+      <tr><td>Lid switch</td><td>COM / NO</td><td>GND / <span class="pin">D14</span></td><td>Use the NO (normally open) terminal</td></tr>
+      <tr><td>HC-SR04</td><td>VCC / TRIG / GND</td><td>5 V / <span class="pin">D27</span> / GND</td><td></td></tr>
+      <tr><td>HC-SR04</td><td>ECHO</td><td><span class="pin">D34</span> through the divider</td><td>See the picture below</td></tr>
+      <tr class="group"><td colspan="4"><span class="dot" style="background:var(--c-lcd)"></span>LCD 20x4 I2C (4 pins on the back)</td></tr>
+      <tr><td></td><td>GND / VCC / SDA / SCL</td><td>GND / 5 V / <span class="pin">D21</span> / <span class="pin">D4</span></td><td>Turn the blue screw on the back if the text is invisible</td></tr>
+      <tr class="group"><td colspan="4"><span class="dot" style="background:var(--c-rfid)"></span>RFID and <span class="dot" style="background:var(--c-scale)"></span>scale (already wired, keep as is)</td></tr>
+      <tr><td>MFRC522</td><td>SDA / SCK / MOSI / MISO / RST</td><td><span class="pin">D5 / D18 / D23 / D19 / D22</span></td><td>3.3 V only</td></tr>
+      <tr><td>HX711</td><td>DT / SCK</td><td><span class="pin">D16 (RX2) / D17 (TX2)</span></td><td>VCC to 3V3</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <figure>
+    <div class="draw">
+    <svg class="small" viewBox="0 0 480 200" role="img" aria-labelledby="dv-t">
+      <title id="dv-t">Voltage divider: ECHO through 1 kilo-ohm to D34, and 2 kilo-ohm from D34 to ground</title>
+      <g font-size="13" fill="var(--ink)">
+        <rect x="20" y="60" width="90" height="40" rx="6" fill="var(--paper)" stroke="var(--c-sense)" stroke-width="2"/>
+        <text x="65" y="85" text-anchor="middle" font-weight="700">ECHO</text>
+        <line x1="110" y1="80" x2="150" y2="80" stroke="var(--ink)" stroke-width="2"/>
+        <path d="M150 80 l8 -10 l12 20 l12 -20 l12 20 l12 -20 l8 10" fill="none" stroke="var(--ink)" stroke-width="2"/>
+        <text x="182" y="56" text-anchor="middle" font-weight="700">1 kΩ</text>
+        <line x1="214" y1="80" x2="300" y2="80" stroke="var(--ink)" stroke-width="2"/>
+        <circle cx="260" cy="80" r="4" fill="var(--ink)"/>
+        <rect x="300" y="60" width="90" height="40" rx="6" fill="var(--paper)" stroke="var(--c-sense)" stroke-width="2"/>
+        <text x="345" y="85" text-anchor="middle" font-weight="700" font-family="JetBrains Mono, monospace">D34</text>
+        <line x1="260" y1="80" x2="260" y2="100" stroke="var(--ink)" stroke-width="2"/>
+        <path d="M260 100 l-10 8 l20 12 l-20 12 l20 12 l-10 8" fill="none" stroke="var(--ink)" stroke-width="2"/>
+        <text x="282" y="130" font-weight="700">2 kΩ</text>
+        <line x1="260" y1="152" x2="260" y2="170" stroke="var(--ink)" stroke-width="2"/>
+        <line x1="244" y1="170" x2="276" y2="170" stroke="var(--ink)" stroke-width="3"/>
+        <text x="260" y="192" text-anchor="middle" fill="var(--muted)">GND</text>
+        <text x="20" y="150" fill="var(--muted)">5 V signal in</text>
+        <text x="20" y="168" fill="var(--muted)">about 3.3 V out</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>The HC-SR04 sends back a 5 V signal. These two resistors bring it down to about 3.3 V so the ESP32 is not damaged.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 12. TEST ============ -->
+<section class="section" id="test">
+  <span class="eyebrow">Section 12</span>
+  <h2>Test one part at a time</h2>
+  <p>Never wire everything at once and switch it on. Add one part, test it, then move to the next. If something stops working, the last thing you added is the cause.</p>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Order</th><th>Part</th><th>How to test</th><th>Works when</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Buck converters</td><td>12 V in, multimeter on the output</td><td>5.0 V and 6.0 V</td></tr>
+      <tr><td>2</td><td>ESP32 on Buck A</td><td>Unplug USB, power from Buck A, then plug in the laptop</td><td>App connects, card tap shows on Live</td></tr>
+      <tr><td>3</td><td>Scale in the machine</td><td>Calibrate in the app, put the same coins on 3 times</td><td>Same weight each time, ±1 g</td></tr>
+      <tr><td>4</td><td>Actuator alone</td><td>Straight on 12 V, both directions</td><td>Moves fully out and back, stops by itself</td></tr>
+      <tr><td>5</td><td>Lid switch, IR, servos, ultrasonic, LCD</td><td>Wire them and tell the developer. A test program will be sent through the app's "Update machine".</td><td>Each one reports correctly</td></tr>
+      <tr><td>6</td><td>Actuator through BTS7960</td><td>Only after the lid switch works. Developer sends the firmware.</td><td>Crushes and returns, stops if the lid opens</td></tr>
+      <tr><td>7</td><td>Whole machine</td><td>Use 10 real bottles, some with water left inside</td><td>Points shown, no water on the scale</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="note">
+    <b>Keep a test log for Chapter IV</b>
+    <p>Every deposit is saved in the app. In <b>Reports</b>, export "All deposits" as CSV after each test day. Also write down the real weight of each test bottle from a kitchen scale, so you can compare it with the machine's reading (accuracy).</p>
+  </div>
+</section>
+
+<!-- ============ 13. SEND ============ -->
+<section class="section" id="send">
+  <span class="eyebrow">Section 13</span>
+  <h2>Tell the developer these numbers</h2>
+  <p>The program needs real measurements from your machine. Send them as soon as you have each one.</p>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>What</th><th>How to get it</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>Actuator time, out and back</td><td>Stopwatch while testing on 12 V</td><td>out 29 s, back 29 s</td></tr>
+      <tr><td>Actuator stroke and force</td><td>From the product page or label</td><td>200 mm, 1500 N</td></tr>
+      <tr><td>Trapdoor servo angles</td><td>Angle when closed and when open</td><td>closed 0°, open 90°</td></tr>
+      <tr><td>Sweeper servo angles</td><td>Rest position and push position</td><td>rest 0°, push 120°</td></tr>
+      <tr><td>Bin depth</td><td>Sensor to the empty bin floor</td><td>38 cm</td></tr>
+      <tr><td>Lightest and heaviest crushed bottle</td><td>Weigh a few crushed, drained bottles</td><td>12 g to 45 g</td></tr>
+      <tr><td>Photos</td><td>Of the wiring and the mechanism, close up</td><td>—</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+</div>
