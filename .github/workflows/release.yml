@@ -21,13 +21,14 @@ concurrency:
 
 jobs:
   release:
-    runs-on: windows-latest
+    # Visual Studio 2022, like the development laptop (windows-latest moved to VS 2026).
+    runs-on: windows-2022
     defaults:
       run:
         working-directory: app
         shell: pwsh
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: subosito/flutter-action@v2
         with:
